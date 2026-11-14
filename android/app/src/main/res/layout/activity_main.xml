@@ -3,116 +3,101 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:padding="24dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="openOTP Gateway"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
-
-    <!-- Server URL -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Server URL:"
-        android:textStyle="bold"
-        android:layout_marginBottom="4dp" />
-    <EditText
-        android:id="@+id/etServerUrl"
+    android:background="@color/bg">
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="http://192.168.1.10:3000"
-        android:inputType="textUri"
-        android:layout_marginBottom="12dp" />
-
-    <!-- API Key -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="API Key:"
-        android:textStyle="bold"
-        android:layout_marginBottom="4dp" />
-    <EditText
-        android:id="@+id/etApiKey"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+        <include layout="@layout/page_gateway" />
+        <include layout="@layout/page_sims" />
+        <include layout="@layout/page_settings" />
+    </FrameLayout>
+    <View
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="x-api-key value"
-        android:inputType="textPassword"
-        android:layout_marginBottom="12dp" />
-
-    <!-- Connect / Disconnect -->
+        android:layout_height="1dp"
+        android:background="@color/border" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_marginBottom="8dp">
-        <Button
-            android:id="@+id/btnConnect"
+        android:background="@color/card">
+        <LinearLayout
+            android:id="@+id/tabGateway"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Connect"
-            android:layout_marginEnd="8dp" />
-        <Button
-            android:id="@+id/btnDisconnect"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:background="?attr/selectableItemBackground">
+            <ImageView
+                android:id="@+id/tabGatewayIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_tab_gateway"
+                android:contentDescription="Gateway" />
+            <TextView
+                android:id="@+id/tabGatewayLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gateway"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/textMuted"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/tabSims"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Disconnect"
-            android:enabled="false"
-            android:layout_marginStart="8dp" />
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:background="?attr/selectableItemBackground">
+            <ImageView
+                android:id="@+id/tabSimsIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_tab_sim"
+                android:contentDescription="SIM Cards" />
+            <TextView
+                android:id="@+id/tabSimsLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SIM Cards"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/textMuted"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/tabSettings"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:background="?attr/selectableItemBackground">
+            <ImageView
+                android:id="@+id/tabSettingsIcon"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_tab_settings"
+                android:contentDescription="Settings" />
+            <TextView
+                android:id="@+id/tabSettingsLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Settings"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="@color/textMuted"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
     </LinearLayout>
-
-    <!-- Receive SMS switch -->
-    <Switch
-        android:id="@+id/swReceiveSms"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Forward received SMS to server"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Device ID -->
-    <TextView
-        android:id="@+id/tvDeviceId"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Device ID: —"
-        android:textSize="14sp"
-        android:textColor="#333333"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Status -->
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Status: Not connected"
-        android:textSize="16sp"
-        android:textColor="#F44336"
-        android:layout_marginBottom="16dp" />
-
-    <!-- Activity Log label -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Activity Log:"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Scrollable log -->
-    <TextView
-        android:id="@+id/tvLog"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:scrollbars="vertical"
-        android:gravity="bottom"
-        android:fontFamily="monospace"
-        android:textSize="12sp"
-        android:background="#F5F5F5"
-        android:padding="12dp"
-        android:text="" />
 </LinearLayout>

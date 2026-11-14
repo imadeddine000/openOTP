@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pageGateway"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg"
+    android:fillViewport="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="open"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="OTP Gateway"
+                android:textSize="26sp"
+                android:textStyle="bold"
+                android:textColor="@color/text" />
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+            <TextView
+                android:id="@+id/tvStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Not connected"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:paddingTop="7dp"
+                android:paddingBottom="7dp"
+                android:background="@drawable/bg_chip_red"
+                android:textColor="@color/chipRedText" />
+        </LinearLayout>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Turn your phone into an SMS gateway"
+            android:textSize="13sp"
+            android:textColor="@color/textMuted"
+            android:layout_marginBottom="18dp" />
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardLabel" android:text="CONNECTION" />
+            <EditText
+                android:id="@+id/etServerUrl"
+                style="@style/AppInput"
+                android:hint="http://192.168.1.10:3001"
+                android:inputType="textUri"
+                android:layout_marginTop="14dp" />
+            <EditText
+                android:id="@+id/etApiKey"
+                style="@style/AppInput"
+                android:hint="API key (x-api-key)"
+                android:inputType="textPassword"
+                android:layout_marginTop="10dp" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="16dp">
+                <Button
+                    android:id="@+id/btnConnect"
+                    style="@style/BtnPrimary"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:text="Connect" />
+                <Button
+                    android:id="@+id/btnDisconnect"
+                    style="@style/BtnOutline"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:enabled="false"
+                    android:text="Disconnect" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardLabel" android:text="DEVICE &amp; SIM CARDS" />
+            <TextView
+                android:id="@+id/tvDeviceId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Device ID: —"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="@color/text"
+                android:layout_marginTop="12dp" />
+            <TextView
+                android:id="@+id/tvSimList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="No SIM cards detected"
+                android:textSize="13sp"
+                android:fontFamily="monospace"
+                android:textColor="@color/textMuted"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+        <LinearLayout style="@style/Card">
+            <TextView style="@style/CardLabel" android:text="ACTIVITY LOG" />
+            <TextView
+                android:id="@+id/tvLog"
+                android:layout_width="match_parent"
+                android:layout_height="240dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_log"
+                android:fontFamily="monospace"
+                android:textSize="12sp"
+                android:textColor="@color/text"
+                android:padding="12dp"
+                android:scrollbars="vertical"
+                android:gravity="bottom" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
