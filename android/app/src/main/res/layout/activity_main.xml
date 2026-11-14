@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="OTP Device Client"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Server URL -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Server URL:"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+    <EditText
+        android:id="@+id/etServerUrl"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="http://10.0.2.2:3000"
+        android:inputType="textUri"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Device ID -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Device ID:"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp" />
+    <EditText
+        android:id="@+id/etDeviceId"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="android-device-1"
+        android:inputType="text"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Auto-connect switch -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="8dp">
+        <Switch
+            android:id="@+id/swAutoConnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Auto-connect on startup" />
+    </LinearLayout>
+
+    <!-- Save Settings button (saves server URL / device ID without connecting) -->
+    <Button
+        android:id="@+id/btnSaveSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Save Settings"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Buttons -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Connect"
+            android:layout_marginEnd="8dp" />
+        <Button
+            android:id="@+id/btnDisconnect"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Disconnect"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnTestSms"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Send Test SMS"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/btnPing"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🔍 Ping Server (Network Diagnostic)"
+        android:background="#555555"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Heartbeat indicator -->
+    <TextView
+        android:id="@+id/tvHeartbeat"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Heartbeat: —"
+        android:textSize="13sp"
+        android:textColor="#666666"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Status -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Status: Not connected"
+        android:textSize="16sp"
+        android:textColor="#F44336"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Activity Log -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Activity Log:"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#F5F5F5"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:text="" />
+    </ScrollView>
+</LinearLayout>
