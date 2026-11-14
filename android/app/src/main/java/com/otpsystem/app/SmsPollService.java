@@ -103,7 +103,7 @@ public class SmsPollService extends Service {
 
         long now = System.currentTimeMillis();
         if (now - lastHeartbeat >= HEARTBEAT_INTERVAL_MS) {
-            GatewayClient.heartbeat(serverUrl, deviceId, apiKey);
+            GatewayClient.heartbeat(serverUrl, deviceId, apiKey, SimUtils.getSimInfo(this));
             lastHeartbeat = now;
         }
 
@@ -150,10 +150,22 @@ public class SmsPollService extends Service {
         PendingIntent sentPI = PendingIntent.getBroadcast(this, 0, sentIntent, piFlags);
         PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0, deliveredIntent, piFlags);
 
+        int simSubscriptionId = msg.optInt("simSubscriptionId", -1);
+        int simSlotIndex = msg.optInt("simSlotIndex", -1);
         try {
-            SmsManager sms = SmsManager.getDefault();
+            SmsManager sms;
+            if (simSubscriptionId != -1) {
+                sms = SmsManager.getSmsManagerForSubscriptionId(simSubscriptionId);
+            } else if (simSlotIndex != -1) {
+                Integer resolved = SimUtils.subscriptionIdForSlot(this, simSlotIndex);
+                sms = (resolved != null) ? SmsManager.getSmsManagerForSubscriptionId(resolved) : SmsManager.getDefault();
+            } else {
+                sms = SmsManager.getDefault();
+            }
             sms.sendTextMessage(recipient, null, message, sentPI, deliveredPI);
-            Log.i(TAG, "Sent SMS id=" + smsId + " to " + recipient);
+            Log.i(TAG, "Sent SMS id=" + smsId + " to " + recipient
+                    + (simSubscriptionId != -1 ? " via subscription " + simSubscriptionId
+                    : (simSlotIndex != -1 ? " via slot " + simSlotIndex : " via default SIM")));
         } catch (Exception e) {
             Log.e(TAG, "SmsManager threw for id=" + smsId, e);
             GatewayClient.updateSmsStatus(serverUrl, deviceId, apiKey, smsId,

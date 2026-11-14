@@ -186,12 +186,14 @@ public final class GatewayClient {
     /**
      * POST {server}/gateway/devices/{id}/heartbeat
      */
-    public static void heartbeat(String serverUrl, String deviceId, String apiKey) {
+    public static void heartbeat(String serverUrl, String deviceId, String apiKey, JSONObject simInfo) {
         HttpURLConnection conn = null;
         try {
             String url = trimSlash(serverUrl) + "/gateway/devices/" + deviceId + "/heartbeat";
             conn = open("POST", url, apiKey);
-            writeAndRead(conn, "{}");
+            JSONObject body = new JSONObject();
+            if (simInfo != null) body.put("simInfo", simInfo);
+            writeAndRead(conn, body.toString());
         } catch (Exception e) {
             Log.e(TAG, "heartbeat failed", e);
         } finally {
