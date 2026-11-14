@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const authRoutes = require('./routes/auth');
 const gatewayRoutes = require('./routes/gateway');
+const clientRoutes = require('./routes/client');
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/v1', clientRoutes);
 app.use('/gateway', gatewayRoutes);
 
 // Serve the web UI dashboard
