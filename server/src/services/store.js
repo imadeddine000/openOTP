@@ -1,7 +1,7 @@
 /**
  * JSON-file-backed data store for the openOTP SMS gateway SaaS.
  * Mirrors textbee's data model: users, devices, sms messages, sms batches.
- * No external deps — uses Node crypto for hashing and uuid for ids.
+ * No external deps â€” uses Node crypto for hashing and uuid for ids.
  */
 const fs = require('fs');
 const path = require('path');
@@ -274,6 +274,30 @@ function getBatchWithMessages(id) {
   return { ...b, messages };
 }
 
+// ---------------- client API helpers ----------------
+/** Online + enabled devices for a user (candidates for auto-routing). */
+function getOnlineDevicesByUser(userId) {
+  return getDevicesByUser(userId).filter((d) => d.enabled && isDeviceOnline(d));
+}
+/** Auto-select the best online device for a user (most recently seen). */
+function pickDeviceForUser(userId) {
+  const online = getOnlineDevicesByUser(userId);
+  if (!online.length) return null;
+  online.sort((a, b) => (b.lastSeenAt || 0) - (a.lastSeenAt || 0));
+  return online[0];
+}
+/** Paginated list of a user's sent messages, optionally filtered by status/device. */
+function getMessagesByUser(userId, opts = {}) {
+  let list = Object.values(state.messages).filter((m) => m.user === userId && m.type === 'sent');
+  if (opts.status) list = list.filter((m) => m.status === opts.status);
+  if (opts.deviceId) list = list.filter((m) => m.device === opts.deviceId);
+  list.sort((a, b) => b.createdAt - a.createdAt);
+  const page = opts.page || 1;
+  const limit = Math.min(opts.limit || 50, 100);
+  const start = (page - 1) * limit;
+  return { data: list.slice(start, start + limit), total: list.length, page, limit };
+}
+
 // ---------------- stats ----------------
 function getStats(userId) {
   const devices = getDevicesByUser(userId);
@@ -294,4 +318,5 @@ module.exports = {
   createDevice, getDevice, getDevicesByUser, updateDevice, deleteDevice, touchDevice, rotateSim, publicDevice, isDeviceOnline,
   createBatch, createMessage, getMessage, getMessagesByDevice, getPendingMessages, claimMessages,
   updateMessageStatus, receiveSms, getBatch, getBatchWithMessages, getStats,
+  getOnlineDevicesByUser, pickDeviceForUser, getMessagesByUser,
 };
