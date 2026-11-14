@@ -53,4 +53,14 @@ function authGateway(req, res, next) {
   return authUser(req, res, next);
 }
 
-module.exports = { signToken, verifyToken, authUser, authGateway };
+/** Client API auth: requires x-api-key header (the client's sk_... key). */
+function authClient(req, res, next) {
+  const apiKey = req.headers['x-api-key'];
+  if (!apiKey) return res.status(401).json({ error: 'x-api-key header is required' });
+  const user = store.findUserByApiKey(apiKey);
+  if (!user) return res.status(401).json({ error: 'Invalid API key' });
+  req.user = user;
+  next();
+}
+
+module.exports = { signToken, verifyToken, authUser, authGateway, authClient };
