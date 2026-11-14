@@ -4,314 +4,373 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>openOTP — SMS Gateway</title>
-<style>:root{
-  --accent:#4f46e5; --accent-light:#6366f1; --accent-bg:#eef2ff;
-  --bg:#f4f5f7; --card:#ffffff; --text:#1f2937; --muted:#6b7280; --border:#e5e7eb;
-  --green:#16a34a; --green-bg:#dcfce7; --red:#dc2626; --red-bg:#fee2e2;
-  --amber:#d97706; --amber-bg:#fef3c7; --blue:#2563eb; --blue-bg:#dbeafe;
-  --gray:#6b7280; --gray-bg:#f3f4f6; --teal:#0d9488; --teal-bg:#ccfbf1;
-  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
-  --shadow-lg:0 4px 12px rgba(0,0,0,.1); --radius:12px;
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ---- textbee-faithful design tokens ---- */
+:root{
+  --background:#faf7f0; --foreground:#1c1a17; --shell:#f3ede1; --card:#ffffff;
+  --muted:#f0ebe0; --muted-foreground:#6b655b; --subtle:#8a8478;
+  --border:#e8e2d4; --input:#e8e2d4; --ring:#ea580c;
+  --primary:#ea580c; --primary-hover:#c2410c; --primary-fg:#ffffff;
+  --destructive:#dc2626; --success:#16a34a; --warning:#d97706;
+  --radius:12px; --sidebar-w:240px; --header-h:56px;
+  --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.dark{
+  --background:#2b2722; --foreground:#e5e3df; --shell:#232019; --card:#2b2722;
+  --muted:#3a352e; --muted-foreground:#a8a39a; --subtle:#8a8478;
+  --border:#423d35; --input:#423d35; --ring:#f97316;
+  --primary:#f97316; --primary-hover:#ea580c; --primary-fg:#241308;
+  --destructive:#f87171; --success:#4ade80; --warning:#fbbf24;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
-button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-size:14px;padding:10px 16px;transition:.15s}
-input,textarea{font-family:inherit;font-size:14px}
-#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.auth-card{background:var(--card);border-radius:16px;box-shadow:var(--shadow-lg);padding:40px;width:100%;max-width:420px}
-.auth-logo{font-size:28px;font-weight:800;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.auth-logo .dot,.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
-.auth-sub{color:var(--muted);font-size:14px;margin-bottom:28px}
-.tabs{display:flex;gap:4px;background:var(--gray-bg);border-radius:10px;padding:4px;margin-bottom:24px}
-.tab{flex:1;background:transparent;color:var(--muted);padding:9px;border-radius:8px;font-weight:600;font-size:14px}
-.tab.active{background:var(--card);color:var(--accent);box-shadow:var(--shadow)}
-.field{margin-bottom:16px}
-.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
-.field input{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:8px;outline:none;transition:.15s}
-.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
-.btn-primary{background:var(--accent);color:#fff;width:100%;padding:12px;font-weight:600}
-.btn-primary:hover{background:var(--accent-light)}
-.btn-primary:disabled{opacity:.6;cursor:not-allowed}
-.auth-msg{margin-top:14px;font-size:13px;text-align:center;min-height:18px}
-.error{color:var(--red)} .success{color:var(--green)}
-#app{display:none;min-height:100vh}
-header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
-.brand{font-size:20px;font-weight:800;color:var(--accent);display:flex;align-items:center;gap:8px}
-.brand .dot{width:9px;height:9px}
-.header-right{display:flex;align-items:center;gap:16px}
-.user-email{font-size:14px;color:var(--muted)}
-.btn-ghost{background:transparent;color:var(--muted);padding:6px 12px;font-weight:600}
-.btn-ghost:hover{background:var(--gray-bg);color:var(--text)}
-main{max-width:1200px;margin:0 auto;padding:24px}
-.section-title{font-size:18px;font-weight:700;margin:28px 0 14px;display:flex;align-items:center;justify-content:space-between}
-.section-title:first-child{margin-top:0}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
-.stat-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
-.stat-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.stat-value{font-size:28px;font-weight:800;margin-top:6px}
-.stat-card.accent .stat-value{color:var(--accent)}
-.panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+body{font-family:var(--font);background:var(--background);color:var(--foreground);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:clip}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,textarea,select{font-family:inherit}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.label{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted-foreground)}
+
+/* ---- buttons ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:500;border-radius:8px;padding:8px 14px;transition:all .15s;white-space:nowrap;line-height:1}
+.btn-primary{background:var(--primary);color:var(--primary-fg)}
+.btn-primary:hover{background:var(--primary-hover)}
+.btn-outline{border:1px solid var(--input);background:var(--card);color:var(--foreground)}
+.btn-outline:hover{background:var(--muted)}
+.btn-ghost{color:var(--foreground)}
+.btn-ghost:hover{background:var(--muted)}
+.btn-destructive{color:var(--destructive)}
+.btn-destructive:hover{background:rgba(220,38,38,.08)}
+.btn-sm{padding:6px 12px;font-size:13px}
+.btn-lg{padding:10px 18px;font-size:15px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn svg{width:16px;height:16px}
+
+/* ---- cards ---- */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius)}
+.card-pad{padding:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.card-title{font-size:15px;font-weight:600}
+.card-desc{font-size:13px;color:var(--muted-foreground);margin-top:2px}
+
+/* ---- inputs ---- */
+.input,.textarea,.select{width:100%;border:1px solid var(--input);border-radius:8px;padding:9px 12px;font-size:14px;background:var(--card);color:var(--foreground);transition:border .15s,box-shadow .15s}
+.input:focus,.textarea:focus,.select:focus{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px rgba(234,88,12,.12)}
+.textarea{resize:vertical;min-height:80px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:13px;font-weight:500}
+.field .hint{font-size:12px;color:var(--muted-foreground)}
+
+/* ---- badges ---- */
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:3px 9px;border-radius:999px;line-height:1.4}
+.badge .dot{width:7px;height:7px;border-radius:50%}
+.b-gray{background:var(--muted);color:var(--muted-foreground)}
+.b-orange{background:rgba(234,88,12,.12);color:var(--primary)}
+.b-green{background:rgba(22,163,74,.12);color:var(--success)}
+.b-red{background:rgba(220,38,38,.12);color:var(--destructive)}
+.b-yellow{background:rgba(217,119,7,.12);color:var(--warning)}
+.b-blue{background:rgba(37,99,235,.12);color:#2563eb}
+
+/* ---- tables ---- */
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;font-weight:500;color:var(--muted-foreground);font-size:12px;text-transform:uppercase;letter-spacing:.03em;padding:10px 12px;border-bottom:1px solid var(--border)}
+.table td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.table tr:last-child td{border-bottom:none}
 .table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th{text-align:left;padding:10px 12px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border)}
-td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
-tbody tr{cursor:pointer;transition:.1s}
-tbody tr:hover{background:var(--gray-bg)}
-tbody tr.selected{background:var(--accent-bg)}
-.dot-status{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
-.dot-online{background:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
-.dot-offline{background:var(--gray);box-shadow:0 0 0 3px var(--gray-bg)}
-.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
-.badge-green{background:var(--green-bg);color:var(--green)}
-.badge-red{background:var(--red-bg);color:var(--red)}
-.badge-amber{background:var(--amber-bg);color:var(--amber)}
-.badge-blue{background:var(--blue-bg);color:var(--blue)}
-.badge-gray{background:var(--gray-bg);color:var(--gray)}
-.badge-teal{background:var(--teal-bg);color:var(--teal)}
-.btn-sm{padding:5px 10px;font-size:13px}
-.btn-danger{background:var(--red-bg);color:var(--red)}
-.btn-danger:hover{background:var(--red);color:#fff}
-.enabled-pill{font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px}
-.enabled-yes{background:var(--green-bg);color:var(--green)}
-.enabled-no{background:var(--gray-bg);color:var(--gray)}
-.send-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}
-.send-grid textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;resize:vertical;outline:none;transition:.15s}
-.send-grid textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
-.send-actions{display:flex;align-items:center;gap:12px;margin-top:14px}
-.send-feedback{font-size:13px}
-.lbl{display:block;margin-bottom:6px;font-weight:600;color:var(--muted);font-size:13px}
-.apikey-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.apikey-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--gray-bg);padding:8px 12px;border-radius:8px;flex:1;min-width:200px;word-break:break-all}
-.btn-outline{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 14px;font-weight:600}
-.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
-.empty,.loading{text-align:center;color:var(--muted);padding:30px;font-size:14px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:var(--shadow-lg);z-index:100;opacity:0;transition:.25s;pointer-events:none}
-.toast.show{opacity:1}
-.muted{color:var(--muted);font-size:13px}
-@media(max-width:640px){
-  .send-grid{grid-template-columns:1fr}
-  header{padding:0 14px} main{padding:14px}
-  .user-email{display:none} .auth-card{padding:28px}
-}</style>
+
+/* ---- layout: header + sidebar ---- */
+.header{position:sticky;top:0;z-index:50;height:var(--header-h);border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--background) 88%,transparent);backdrop-filter:blur(8px);display:flex;align-items:center;gap:8px;padding:0 16px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;letter-spacing:-.01em;font-size:16px}
+.brand .bee{color:var(--primary)}
+.brand .dotdev{font-size:11px;color:var(--muted-foreground);font-weight:400}
+.logo{width:26px;height:26px;border-radius:7px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff}
+.logo svg{width:16px;height:16px}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px}
+
+.sidebar{position:fixed;top:var(--header-h);bottom:0;left:0;width:var(--sidebar-w);border-right:1px solid var(--border);background:var(--shell);display:flex;flex-direction:column;z-index:30}
+.sidebar nav{flex:1;overflow-y:auto;padding:16px 12px;display:flex;flex-direction:column;gap:2px}
+.nav-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;font-size:14px;font-weight:500;color:var(--muted-foreground);transition:all .15s}
+.nav-link:hover{background:var(--muted);color:var(--foreground)}
+.nav-link.active{background:var(--card);color:var(--primary);box-shadow:0 0 0 1px var(--border)}
+.nav-link svg{width:18px;height:18px;flex-shrink:0}
+.sidebar-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--muted-foreground)}
+
+.main{padding:24px 16px 80px;max-width:1100px;margin:0 auto}
+@media(min-width:768px){.main{padding:28px 32px 40px;margin-left:var(--sidebar-w);margin-right:0;max-width:none}}
+
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:24px}
+.page-head h2{font-size:22px;font-weight:600;letter-spacing:-.02em}
+.page-head p{font-size:14px;color:var(--muted-foreground);margin-top:4px}
+
+/* ---- stats ---- */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px}
+@media(min-width:640px){.stats-grid{grid-template-columns:repeat(4,1fr)}}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.stat .v{font-size:24px;font-weight:600;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.stat .k{font-size:12px;color:var(--muted-foreground);margin-top:4px;text-transform:capitalize}
+
+.grid2{display:grid;gap:20px;grid-template-columns:1fr}
+@media(min-width:900px){.grid2{grid-template-columns:1fr 1fr}}
+.section{margin-bottom:24px}
+.empty{padding:40px 20px;text-align:center;color:var(--muted-foreground);font-size:14px}
+.empty svg{width:32px;height:32px;opacity:.4;margin-bottom:8px}
+
+/* ---- auth ---- */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:var(--background)}
+.auth-card{width:100%;max-width:400px}
+.auth-tabs{display:flex;gap:4px;background:var(--muted);padding:4px;border-radius:10px;margin-bottom:20px}
+.auth-tab{flex:1;padding:8px;border-radius:7px;font-size:14px;font-weight:500;color:var(--muted-foreground)}
+.auth-tab.active{background:var(--card);color:var(--foreground);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--foreground);color:var(--background);padding:10px 18px;border-radius:8px;font-size:14px;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+.toast.err{background:var(--destructive);color:#fff}
+
+/* mobile bottom nav */
+.mobnav{position:fixed;bottom:0;left:0;right:0;z-index:40;border-top:1px solid var(--border);background:color-mix(in srgb,var(--shell) 92%,transparent);backdrop-filter:blur(8px);display:none;height:60px;align-items:center;justify-content:space-around}
+@media(max-width:767px){.mobnav{display:flex}.sidebar{display:none}}
+.mobnav-link{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:500;color:var(--muted-foreground);padding:6px 10px}
+.mobnav-link.active{color:var(--primary)}
+.mobnav-link svg{width:20px;height:20px}
+.hidden{display:none!important}
+.muted{color:var(--muted-foreground)}
+.row{display:flex;align-items:center;gap:8px}
+.gap8{gap:8px}.gap12{gap:12px}
+.mt8{margin-top:8px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}.mb16{margin-bottom:16px}
+.copy{font-family:var(--mono);font-size:12px;background:var(--muted);padding:8px 10px;border-radius:6px;word-break:break-all;flex:1}
+</style>
 </head>
 <body>
-<!-- Auth -->
-<div id="auth">
-  <div class="auth-card">
-    <div class="auth-logo"><span class="dot"></span>openOTP</div>
-    <div class="auth-sub">SMS Gateway Dashboard</div>
-    <div class="tabs">
-      <button type="button" class="tab active" id="tab-login" onclick="switchTab('login')">Login</button>
-      <button type="button" class="tab" id="tab-register" onclick="switchTab('register')">Register</button>
+
+<!-- AUTH -->
+<div id="authView" class="auth-wrap hidden">
+  <div class="auth-card card card-pad">
+    <div class="brand mb16"><span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/></svg></span><span>open<span class="bee">OTP</span><span class="dotdev">.dev</span></span></div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchAuth('login')">Log in</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchAuth('register')">Create account</button>
     </div>
-    <form id="auth-form" onsubmit="submitAuth();return false">
-      <div class="field">
-        <label for="email">Email</label>
-        <input type="email" id="email" autocomplete="email" required>
-      </div>
-      <div class="field">
-        <label for="password">Password</label>
-        <input type="password" id="password" autocomplete="current-password" required>
-      </div>
-      <button type="submit" class="btn-primary" id="auth-submit">Login</button>
-      <div class="auth-msg" id="auth-msg"></div>
+    <form id="authForm" onsubmit="return doAuth(event)">
+      <div class="field"><label>Email</label><input class="input" type="email" id="email" required placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input class="input" type="password" id="password" required placeholder="••••••••"></div>
+      <button class="btn btn-primary btn-lg" style="width:100%" id="authBtn">Log in</button>
     </form>
+    <p class="muted mt16" style="font-size:13px;text-align:center">Turn your Android phone into an SMS gateway.</p>
   </div>
 </div>
-<!-- App -->
-<div id="app">
-  <header>
-    <div class="brand"><span class="dot"></span>openOTP</div>
+
+<!-- APP -->
+<div id="appView" class="hidden">
+  <header class="header">
+    <a class="brand" href="#"><span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/></svg></span><span>open<span class="bee">OTP</span><span class="dotdev">.dev</span></span></a>
     <div class="header-right">
-      <span class="user-email" id="user-email"></span>
-      <button class="btn-ghost" onclick="logout()">Logout</button>
+      <button class="btn btn-ghost btn-sm" id="themeBtn" onclick="toggleTheme()" title="Toggle theme"></button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar" id="avatar">?</div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Log out</button>
+      </div>
     </div>
   </header>
-  <main>
-    <div class="section-title">Overview</div>
-    <div class="stats-grid" id="stats-grid"></div>
-    <div class="section-title">Devices</div>
-    <div class="panel">
-      <div id="devices-loading" class="loading">Loading devices…</div>
-      <div id="devices-empty" class="empty" style="display:none">No devices registered.</div>
-      <div class="table-wrap" id="devices-wrap" style="display:none">
-        <table>
-          <thead><tr><th>Status</th><th>Name</th><th>Brand / Model</th><th>OS</th><th>Sent</th><th>Received</th><th>Enabled</th><th></th></tr></thead>
-          <tbody id="devices-body"></tbody>
-        </table>
-      </div>
-    </div>
-    <div id="device-panels" style="display:none">
-      <div class="section-title">Send SMS <span class="muted" id="send-device-name"></span></div>
-      <div class="panel">
-        <div class="send-grid">
-          <div>
-            <span class="lbl">Recipients (one per line or comma-separated)</span>
-            <textarea id="recipients" rows="5" placeholder="+1234567890&#10;+0987654321"></textarea>
-          </div>
-          <div>
-            <span class="lbl">Message</span>
-            <textarea id="message" rows="5" placeholder="Your message…"></textarea>
-          </div>
-        </div>
-        <div class="send-actions">
-          <button class="btn-primary" style="width:auto" id="send-btn" onclick="sendSMS()">Send</button>
-          <span class="send-feedback" id="send-feedback"></span>
-        </div>
-      </div>
-      <div class="section-title">Message History <span class="muted" id="msg-device-name"></span></div>
-      <div class="panel">
-        <div id="msg-loading" class="loading">Loading messages…</div>
-        <div id="msg-empty" class="empty" style="display:none">No messages for this device.</div>
-        <div class="table-wrap" id="msg-wrap" style="display:none">
-          <table>
-            <thead><tr><th>Type</th><th>From / To</th><th>Message</th><th>Status</th><th>Time</th></tr></thead>
-            <tbody id="msg-body"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-    <div class="section-title">API Key</div>
-    <div class="panel">
-      <div class="apikey-row">
-        <code class="apikey-code" id="apikey-code">—</code>
-        <button class="btn-outline" onclick="copyApiKey()">Copy</button>
-        <button class="btn-outline" onclick="rotateApiKey()">Rotate API key</button>
-      </div>
-      <div class="muted" id="apikey-msg" style="margin-top:10px"></div>
-    </div>
-  </main>
+
+  <aside class="sidebar">
+    <nav id="sideNav"></nav>
+    <div class="sidebar-foot"><span>Need help?</span><a href="#" style="color:var(--primary);font-weight:500">Quick start</a></div>
+  </aside>
+
+  <main class="main" id="mainContent"></main>
+
+  <nav class="mobnav" id="mobNav"></nav>
 </div>
+
 <div class="toast" id="toast"></div>
 <script src="/socket.io/socket.io.js"></script>
-<script>var state={token:null,user:null,selectedDeviceId:null,devices:[],_tab:'login'};
-var LS_TOKEN='openotp_token',LS_USER='openotp_user';
-async function api(path,opts){
-  opts=opts||{};var method=opts.method||'GET';
-  var headers={'Content-Type':'application/json'};
-  if(opts.token)headers['Authorization']='Bearer '+opts.token;
+<script>
+/* ============ openOTP dashboard — textbee-style ============ */
+const $ = (s)=>document.querySelector(s);
+const store = { token:null, user:null, devices:[], stats:{}, selDevice:null, section:'dashboard' };
+const ICONS = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>',
+  webhook:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.66.27-1.3.8-1.8"/><path d="M7.8 5.8A4 4 0 0 1 14 4c1.1 0 1.95.94 2.48 1.9A4 4 0 0 1 22 7c-.01.66-.27 1.3-.8 1.8"/><circle cx="12" cy="12" r="3"/></svg>',
+  user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+  key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="7" cy="15" r="4"/><path d="m10 12 9-9 3 3-2 2-2-2-2 2-2-2"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 6h18M8 6V4h8v2m-9 0v14h10V6"/></svg>',
+  copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>',
+  inbox:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6Z"/></svg>'
+};
+const NAV = [
+  {id:'dashboard',label:'Dashboard',icon:'home'},
+  {id:'messaging',label:'Messaging',icon:'send'},
+  {id:'webhooks',label:'Webhooks',icon:'webhook'},
+  {id:'account',label:'Account',icon:'user'},
+];
+
+function toast(msg,err){const t=$('#toast');t.textContent=msg;t.className='toast show'+(err?' err':'');clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',2600)}
+async function api(path,opts={}){
+  const h={'Content-Type':'application/json'};
+  if(store.token)h['Authorization']='Bearer '+store.token;
+  if(opts.apiKey)h['x-api-key']=opts.apiKey;
+  const r=await fetch(path,{method:opts.method||'GET',headers:h,body:opts.body?JSON.stringify(opts.body):undefined});
+  const txt=await r.text();
+  const j=txt?JSON.parse(txt):{};
+  if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+function fmtTime(ms){if(!ms)return'—';const d=new Date(typeof ms==='number'&&ms<1e12?ms:ms);return d.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}
+function esc(s){return String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+function statusBadge(s){
+  const m={pending:['b-gray','gray'],dispatched:['b-yellow','yellow'],sent:['b-blue','blue'],delivered:['b-green','green'],failed:['b-red','red'],received:['b-green','green']};
+  const [cls,col]=m[s]||['b-gray','gray'];
+  return `<span class="badge ${cls}"><span class="dot" style="background:var(--${col==='gray'?'muted-foreground':col})"></span>${esc(s)}</span>`;
+}
+
+/* ---- theme ---- */
+function applyTheme(d){document.documentElement.classList.toggle('dark',d);$('#themeBtn').innerHTML=d?ICONS.sun:ICONS.mon;localStorage.setItem('otp_theme',d?'dark':'light')}
+function toggleTheme(){applyTheme(!document.documentElement.classList.contains('dark'))}
+
+/* ---- auth ---- */
+let authMode='login';
+function switchAuth(m){authMode=m;$('#tabLogin').classList.toggle('active',m==='login');$('#tabRegister').classList.toggle('active',m==='register');$('#authBtn').textContent=m==='login'?'Log in':'Create account'}
+async function doAuth(e){e.preventDefault();
+  const email=$('#email').value.trim(),password=$('#password').value;
+  if(!email||!password)return false;
+  $('#authBtn').disabled=true;
   try{
-    var res=await fetch(path,{method:method,headers:headers,body:opts.body?JSON.stringify(opts.body):undefined});
-    var text=await res.text();var json;
-    try{json=JSON.parse(text);}catch(e){json={error:text||'Invalid response'};}
-    if(!res.ok){var msg=(json&&json.error)?json.error:('HTTP '+res.status);return{error:msg};}
-    return json;
-  }catch(e){return{error:e.message||'Network error'};}
+    const r=await api('/api/auth/'+authMode,{method:'POST',body:{email,password}});
+    store.token=r.data.token;store.user=r.data.user;localStorage.setItem('otp_auth',JSON.stringify({token:store.token,user:store.user}));
+    enterApp();
+  }catch(err){toast(err.message,true)}finally{$('#authBtn').disabled=false}
+  return false;
 }
-function $(id){return document.getElementById(id);}
-function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2600);}
-function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function fmtDateTime(ms){if(!ms)return'—';var d=new Date(ms);if(isNaN(d))return'—';return d.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
-function relTime(ms){if(!ms)return'—';var d=new Date(ms);if(isNaN(d))return'—';var diff=Date.now()-ms,s=Math.floor(diff/1000);if(s<5)return'just now';if(s<60)return s+'s ago';var m=Math.floor(s/60);if(m<60)return m+'m ago';var h=Math.floor(m/60);if(h<24)return h+'h ago';var dd=Math.floor(h/24);if(dd<7)return dd+'d ago';return fmtDateTime(ms);}
-function statusBadge(status){var s=String(status||'').toLowerCase();var map={pending:'badge-amber',dispatched:'badge-blue',sent:'badge-blue',delivered:'badge-green',failed:'badge-red',received:'badge-teal',queued:'badge-gray',scheduled:'badge-gray'};return'<span class="badge '+(map[s]||'badge-gray')+'">'+esc(status||'unknown')+'</span>';}
-function switchTab(which){state._tab=which;$('tab-login').classList.toggle('active',which==='login');$('tab-register').classList.toggle('active',which==='register');$('auth-submit').textContent=which==='login'?'Login':'Register';$('auth-msg').textContent='';$('auth-msg').className='auth-msg';}
-function setAuthMsg(msg,type){var el=$('auth-msg');el.textContent=msg;el.className='auth-msg '+(type||'');}
-async function submitAuth(){
-  var email=$('email').value.trim(),password=$('password').value;
-  if(!email||!password){setAuthMsg('Please enter email and password.','error');return;}
-  var btn=$('auth-submit');btn.disabled=true;btn.textContent='Please wait…';
-  var path=state._tab==='register'?'/api/auth/register':'/api/auth/login';
-  var r=await api(path,{method:'POST',body:{email:email,password:password}});
-  btn.disabled=false;btn.textContent=state._tab==='login'?'Login':'Register';
-  if(r.error){setAuthMsg(r.error,'error');return;}
-  var data=r.data||r,user=data.user,token=data.token;
-  if(!token||!user){setAuthMsg('Unexpected response from server.','error');return;}
-  saveSession(token,user);enterApp();
+function logout(){localStorage.removeItem('otp_auth');store.token=null;store.user=null;$('#appView').classList.add('hidden');$('#authView').classList.remove('hidden');if(window._sock)window._sock.disconnect()}
+
+/* ---- nav ---- */
+function renderNav(){
+  $('#sideNav').innerHTML=NAV.map(n=>`<a class="nav-link ${store.section===n.id?'active':''}" onclick="goSection('${n.id}')">${ICONS[n.icon]}<span>${n.label}</span></a>`).join('');
+  $('#mobNav').innerHTML=NAV.map(n=>`<a class="mobnav-link ${store.section===n.id?'active':''}" onclick="goSection('${n.id}')">${ICONS[n.icon]}<span>${n.label}</span></a>`).join('');
 }
-function saveSession(token,user){state.token=token;state.user=user;localStorage.setItem(LS_TOKEN,token);localStorage.setItem(LS_USER,JSON.stringify(user));}
-function clearSession(){state.token=null;state.user=null;state.selectedDeviceId=null;localStorage.removeItem(LS_TOKEN);localStorage.removeItem(LS_USER);}
-function logout(){clearSession();stopLive();$('app').style.display='none';$('auth').style.display='flex';switchTab('login');$('password').value='';setAuthMsg('','');}
-async function enterApp(){
-  $('auth').style.display='none';$('app').style.display='block';
-  $('user-email').textContent=(state.user&&state.user.email)?state.user.email:'';
-  $('apikey-code').textContent=(state.user&&state.user.apiKey)?state.user.apiKey:'—';
-  $('apikey-msg').textContent='';$('apikey-msg').className='muted';
-  state.selectedDeviceId=null;$('device-panels').style.display='none';
-  await Promise.all([loadStats(),loadDevices()]);startLive();
+function goSection(id){store.section=id;renderNav();renderSection()}
+
+/* ---- data ---- */
+async function loadStats(){try{const r=await api('/gateway/stats');store.stats=r.data}catch{}}
+async function loadDevices(){try{const r=await api('/gateway/devices');store.devices=r.data||[];if(!store.selDevice&&store.devices.length)store.selDevice=store.devices[0].id}catch{}}
+async function loadMessages(){if(!store.selDevice)return[];try{const r=await api(`/gateway/devices/${store.selDevice}/sms?limit=100`);return r.data||[]}catch{return[]}}
+
+/* ---- render sections ---- */
+function renderSection(){const m=$('#mainContent');
+  if(store.section==='dashboard')m.innerHTML=dashboardHtml();
+  else if(store.section==='messaging')m.innerHTML=messagingHtml();
+  else if(store.section==='webhooks')m.innerHTML=webhooksHtml();
+  else if(store.section==='account')m.innerHTML=accountHtml();
+  if(store.section==='dashboard'||store.section==='messaging')afterRender();
 }
-async function loadStats(){
-  var r=await api('/gateway/stats',{token:state.token});
-  if(r.error){$('stats-grid').innerHTML='<div class="empty error">Stats: '+esc(r.error)+'</div>';return;}
-  var d=r.data||r;
-  var cards=[['Devices',d.devices,'accent'],['Online',d.devicesOnline,''],['Sent',d.sent,''],['Received',d.received,''],['Pending',d.pending,''],['Delivered',d.delivered,''],['Failed',d.failed,'']];
-  $('stats-grid').innerHTML=cards.map(function(c){return'<div class="stat-card '+(c[2]||'')+'"><div class="stat-label">'+c[0]+'</div><div class="stat-value">'+esc(c[1]==null?0:c[1])+'</div></div>';}).join('');
-}async function loadDevices(){
-  $('devices-loading').style.display='block';$('devices-empty').style.display='none';$('devices-wrap').style.display='none';
-  var r=await api('/gateway/devices',{token:state.token});
-  $('devices-loading').style.display='none';
-  if(r.error){$('devices-empty').style.display='block';$('devices-empty').textContent='Devices: '+r.error;return;}
-  var list=r.data||r||[];if(!Array.isArray(list))list=[];state.devices=list;
-  if(!list.length){$('devices-empty').style.display='block';return;}
-  $('devices-wrap').style.display='block';
-  $('devices-body').innerHTML=list.map(function(dev){
-    var sel=state.selectedDeviceId===dev.id?' selected':'',dot=dev.online?'dot-online':'dot-offline';
-    var en=dev.enabled?'<span class="enabled-pill enabled-yes">Yes</span>':'<span class="enabled-pill enabled-no">No</span>';
-    var os=esc(dev.os||'—')+(dev.osVersion?(' '+esc(dev.osVersion)):'');
-    return'<tr data-id="'+esc(dev.id)+'" class="'+sel+'"><td><span class="dot-status '+dot+'"></span>'+(dev.online?'Online':'Offline')+'</td><td>'+esc(dev.name||dev.id)+'</td><td>'+esc(dev.brand||'—')+' / '+esc(dev.model||'—')+'</td><td>'+os+'</td><td>'+esc(dev.sentSMSCount==null?0:dev.sentSMSCount)+'</td><td>'+esc(dev.receivedSMSCount==null?0:dev.receivedSMSCount)+'</td><td>'+en+'</td><td><button class="btn-sm btn-danger">Delete</button></td></tr>';
-  }).join('');
+function statsHtml(){const s=store.stats;const items=[['Devices',s.devices],['Online',s.devicesOnline],['Sent',s.sent],['Received',s.received],['Pending',s.pending],['Delivered',s.delivered],['Failed',s.failed]];
+  return `<div class="stats-grid">${items.map(([k,v])=>`<div class="stat"><div class="v">${v??0}</div><div class="k">${k}</div></div>`).join('')}</div>`}
+function deviceRows(){return store.devices.map(d=>`<tr style="cursor:pointer" onclick="selectDevice('${d.id}')">
+  <td><div class="row"><span class="badge ${d.online?'b-green':'b-gray'}"><span class="dot" style="background:var(--${d.online?'success':'muted-foreground'})"></span></span>${esc(d.brand||'?')} ${esc(d.model||'')}</div></td>
+  <td class="muted">${esc(d.osVersion||'—')}</td>
+  <td class="mono">${d.sentSMSCount||0}/${d.receivedSMSCount||0}</td>
+  <td>${d.enabled?statusBadge('delivered').replace('delivered','enabled'):statusBadge('failed').replace('failed','disabled')}</td>
+  <td><button class="btn btn-ghost btn-sm btn-destructive" onclick="event.stopPropagation();delDevice('${d.id}')">${ICONS.trash}</button></td>
+</tr>`).join('')}
+function dashboardHtml(){
+  const u=store.user?.email?.split('@')[0]||'there';
+  return `<div class="page-head"><div><h2>Welcome back, ${esc(u)}</h2><p>Here's what's happening with your SMS gateway</p></div>
+    <div class="row gap8"><button class="btn btn-primary btn-sm" onclick="goSection('messaging')">${ICONS.send} Send SMS</button></div></div>
+  ${statsHtml()}
+  <div class="grid2">
+    <div class="card"><div class="card-header"><span class="card-title">Registered Devices</span><button class="btn btn-outline btn-sm" onclick="toast('Use the Android app to register a device')">${ICONS.plus} Add device</button></div>
+      <div class="table-wrap">${store.devices.length?`<table class="table"><thead><tr><th>Device</th><th>OS</th><th>Sent/Recv</th><th>Status</th><th></th></tr></thead><tbody>${deviceRows()}</tbody></table>`:`<div class="empty">${ICONS.inbox}<div>No devices yet. Install the Android app and connect with your API key.</div></div>`}</div></div>
+    <div class="card"><div class="card-header"><span class="card-title">API Key</span></div><div class="card-pad">
+      <p class="label mb8">Your API key</p><div class="row"><code class="copy" id="akCopy">${esc(store.user?.apiKey||'')}</code><button class="btn btn-outline btn-sm" onclick="copyKey()">${ICONS.copy} Copy</button></div>
+      <button class="btn btn-outline btn-sm mt16" onclick="rotateKey()">${ICONS.key} Rotate API key</button>
+      <p class="hint mt8">Use this key in the Android app or as the <code>x-api-key</code> header for REST calls.</p>
+    </div></div>
+  </div>`;
 }
-function onDevicesClick(e){var del=e.target.closest('.btn-danger');if(del){e.stopPropagation();var tr=del.closest('tr');if(tr)deleteDevice(tr.getAttribute('data-id'));return;}var tr=e.target.closest('tr');if(tr)selectDevice(tr.getAttribute('data-id'));}
-function selectDevice(id){
-  state.selectedDeviceId=id;
-  var rows=document.querySelectorAll('#devices-body tr');
-  for(var i=0;i<rows.length;i++)rows[i].classList.toggle('selected',rows[i].getAttribute('data-id')===id);
-  var dev=null;for(var j=0;j<state.devices.length;j++)if(state.devices[j].id===id){dev=state.devices[j];break;}
-  var name=dev?(dev.name||dev.id):id;
-  $('device-panels').style.display='block';$('send-device-name').textContent='— '+name;$('msg-device-name').textContent='— '+name;
-  $('send-feedback').textContent='';$('send-feedback').className='send-feedback';loadMessages(id);
+function messagingHtml(){
+  const dev=store.devices.find(d=>d.id===store.selDevice);
+  const opts=store.devices.map(d=>`<option value="${d.id}" ${d.id===store.selDevice?'selected':''}>${esc(d.brand||'?')} ${esc(d.model||'')} ${d.online?'●':'○'}</option>`).join('');
+  return `<div class="page-head"><div><h2>Messaging</h2><p>Send SMS and view message history</p></div></div>
+  <div class="card section"><div class="card-header"><span class="card-title">Send SMS</span></div><div class="card-pad">
+    <div class="field"><label>Device</label><select class="select" id="selDev" onchange="store.selDevice=this.value;renderSection()">${opts||'<option>No devices</option>'}</select></div>
+    <div class="field"><label>Recipients</label><textarea class="textarea" id="recip" placeholder="+1234567890, +1987654321 (one per line or comma-separated)"></textarea></div>
+    <div class="field"><label>Message</label><textarea class="textarea" id="msg" placeholder="Your verification code is 123456" maxlength="160"></textarea><span class="hint" id="cnt">0 / 160</span></div>
+    <button class="btn btn-primary" id="sendBtn" onclick="sendSms()">${ICONS.send} Send SMS</button>
+  </div></div>
+  <div class="card section"><div class="card-header"><span class="card-title">Message History</span><span class="muted" style="font-size:13px">${dev?esc(dev.brand+' '+dev.model):'No device'}</span></div>
+    <div class="table-wrap" id="histWrap"><div class="empty">Loading…</div></div></div>`;
 }
-async function deleteDevice(id){
-  if(!confirm('Delete this device?'))return;
-  var r=await api('/gateway/devices/'+encodeURIComponent(id),{method:'DELETE',token:state.token});
-  if(r.error){toast('Delete failed: '+r.error);return;}
-  toast('Device deleted');
-  if(state.selectedDeviceId===id){state.selectedDeviceId=null;$('device-panels').style.display='none';}
-  await Promise.all([loadStats(),loadDevices()]);
+function webhooksHtml(){return `<div class="page-head"><div><h2>Webhooks</h2><p>Get notified at your endpoints when SMS events happen</p></div></div>
+  <div class="card card-pad empty">${ICONS.webhook}<div style="margin-top:8px">Webhooks are coming soon. This is where you'll configure URLs to receive <code>sms.sent</code>, <code>sms.delivered</code>, and <code>sms.received</code> events.</div></div>`}
+function accountHtml(){return `<div class="page-head"><div><h2>Account</h2><p>Manage your account and API access</p></div></div>
+  <div class="grid2">
+    <div class="card"><div class="card-header"><span class="card-title">Profile</span></div><div class="card-pad">
+      <div class="field"><label>Email</label><input class="input" value="${esc(store.user?.email||'')}" disabled></div>
+      <p class="hint">Account created ${fmtTime(store.user?.createdAt)}</p>
+    </div></div>
+    <div class="card"><div class="card-header"><span class="card-title">API Key</span></div><div class="card-pad">
+      <p class="label mb8">Your API key</p><div class="row"><code class="copy">${esc(store.user?.apiKey||'')}</code><button class="btn btn-outline btn-sm" onclick="copyKey()">${ICONS.copy} Copy</button></div>
+      <button class="btn btn-outline btn-sm mt16" onclick="rotateKey()">${ICONS.key} Rotate API key</button>
+      <p class="hint mt8">Rotating invalidates the old key immediately.</p>
+    </div></div>
+  </div>`}
+
+/* ---- actions ---- */
+async function afterRender(){
+  if(store.section==='messaging'){const t=$('#msg');if(t)t.oninput=()=>$('#cnt').textContent=t.value.length+' / 160';await refreshHistory()}
 }
-async function sendSMS(){
-  var id=state.selectedDeviceId;if(!id)return;
-  var recipients=$('recipients').value.split(/[\n,]/).map(function(s){return s.trim();}).filter(function(s){return!!s;}),message=$('message').value,fb=$('send-feedback');
-  if(!recipients.length){fb.textContent='Enter at least one recipient.';fb.className='send-feedback error';return;}
-  if(!message){fb.textContent='Message is empty.';fb.className='send-feedback error';return;}
-  var btn=$('send-btn');btn.disabled=true;btn.textContent='Sending…';fb.textContent='';fb.className='send-feedback';
-  var r=await api('/gateway/devices/'+encodeURIComponent(id)+'/send-sms',{method:'POST',body:{recipients:recipients,message:message},token:state.token});
-  btn.disabled=false;btn.textContent='Send';
-  if(r.error){fb.textContent='Error: '+r.error;fb.className='send-feedback error';return;}
-  var d=r.data||r;fb.textContent='Sent '+esc(d.count==null?recipients.length:d.count)+' message(s)'+(d.smsBatchId?(' · batch '+esc(d.smsBatchId)):'')+'.';fb.className='send-feedback success';
-  $('recipients').value='';$('message').value='';await Promise.all([loadStats(),loadDevices(),loadMessages(id)]);
+async function refreshHistory(){const w=$('#histWrap');if(!w)return;const msgs=await loadMessages();
+  if(!msgs.length){w.innerHTML=`<div class="empty">${ICONS.inbox}<div>No messages yet.</div></div>`;return}
+  w.innerHTML=`<table class="table"><thead><tr><th>Type</th><th>From / To</th><th>Message</th><th>Status</th><th>Time</th></tr></thead><tbody>${msgs.map(m=>`<tr>
+    <td><span class="badge ${m.type==='sent'?'b-orange':'b-blue'}">${m.type}</span></td>
+    <td class="mono">${esc(m.type==='sent'?m.recipient:m.sender)||'—'}</td>
+    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.message)}</td>
+    <td>${statusBadge(m.status)}</td>
+    <td class="muted" style="font-size:12px">${fmtTime(m.sentAt||m.receivedAt||m.createdAt)}</td>
+  </tr>`).join('')}</tbody></table>`;
 }
-async function loadMessages(id){
-  if(!id)return;
-  $('msg-loading').style.display='block';$('msg-empty').style.display='none';$('msg-wrap').style.display='none';
-  var r=await api('/gateway/devices/'+encodeURIComponent(id)+'/sms?limit=50',{token:state.token});
-  $('msg-loading').style.display='none';
-  if(r.error){$('msg-empty').style.display='block';$('msg-empty').textContent='Messages: '+r.error;return;}
-  var list=r.data||r||[];if(!Array.isArray(list))list=[];
-  if(!list.length){$('msg-empty').style.display='block';return;}
-  $('msg-wrap').style.display='block';
-  $('msg-body').innerHTML=list.map(function(m){
-    var sent=m.type==='sent',fromto=sent?('To: '+esc(m.recipient||'—')):('From: '+esc(m.sender||'—'));
-    var badge=sent?'<span class="badge badge-blue">Sent</span>':'<span class="badge badge-teal">Received</span>';
-    var msg=esc(m.message||''),trunc=msg.length>60?msg.slice(0,60)+'…':msg;
-    var time=m.type==='received'?(m.receivedAt||m.createdAt):(m.sentAt||m.createdAt);
-    return'<tr><td>'+badge+'</td><td>'+fromto+'</td><td title="'+msg.replace(/"/g,'&quot;')+'">'+trunc+'</td><td>'+statusBadge(m.status)+'</td><td title="'+fmtDateTime(time)+'">'+relTime(time)+'</td></tr>';
-  }).join('');
+function selectDevice(id){store.selDevice=id;goSection('messaging')}
+async function sendSms(){const r=$('#recip').value,msg=$('#msg').value;
+  const recipients=r.split(/[\n,]/).map(x=>x.trim()).filter(Boolean);
+  if(!store.selDevice)return toast('Select a device first',true);
+  if(!recipients.length||!msg)return toast('Add recipients and a message',true);
+  $('#sendBtn').disabled=true;
+  try{const res=await api(`/gateway/devices/${store.selDevice}/send-sms`,{method:'POST',body:{recipients,message:msg}});toast(`Sent to ${res.data.count} recipient(s)`);$('#recip').value='';$('#msg').value='';$('#cnt').textContent='0 / 160';await refreshHistory();await loadStats()}
+  catch(e){toast(e.message,true)}finally{$('#sendBtn').disabled=false}
 }
-async function copyApiKey(){
-  var key=state.user&&state.user.apiKey;if(!key){toast('No API key');return;}
-  try{await navigator.clipboard.writeText(key);toast('API key copied');}catch(e){var ta=document.createElement('textarea');ta.value=key;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('API key copied');}catch(_){toast('Copy failed');}document.body.removeChild(ta);}
+async function delDevice(id){if(!confirm('Delete this device?'))return;try{await api(`/gateway/devices/${id}`,{method:'DELETE'});toast('Device deleted');await loadDevices();renderSection()}catch(e){toast(e.message,true)}}
+function copyKey(){navigator.clipboard.writeText(store.user?.apiKey||'').then(()=>toast('API key copied'))}
+async function rotateKey(){try{const r=await api('/api/auth/api-key',{method:'POST'});store.user=r.data;localStorage.setItem('otp_auth',JSON.stringify({token:store.token,user:store.user}));toast('API key rotated');renderSection()}catch(e){toast(e.message,true)}}
+
+/* ---- live ---- */
+let pollT=null;
+function startLive(){if(window._sock)return;try{window._sock=io();window._sock.on('change',refresh)}catch{}
+pollT=setInterval(refresh,5000)}
+async function refresh(){await loadStats();if(store.section==='dashboard'||store.section==='messaging'){const cur=store.section;renderSection()}}
+
+/* ---- boot ---- */
+function enterApp(){
+  $('#authView').classList.add('hidden');$('#appView').classList.remove('hidden');
+  $('#avatar').textContent=(store.user?.email||'?')[0].toUpperCase();
+  renderNav();
+  (async()=>{await loadDevices();await loadStats();renderSection();startLive()})();
 }
-async function rotateApiKey(){
-  var r=await api('/api/auth/api-key',{method:'POST',token:state.token}),el=$('apikey-msg');
-  if(r.error){el.textContent='Error: '+r.error;el.className='muted error';return;}
-  var user=(r.data&&r.data.user)||r.data||r.user||state.user;state.user=user;localStorage.setItem(LS_USER,JSON.stringify(user));
-  $('apikey-code').textContent=user.apiKey||'—';el.textContent='API key rotated.';el.className='muted success';toast('API key rotated');
+function init(){
+  applyTheme(localStorage.getItem('otp_theme')==='dark');
+  const saved=localStorage.getItem('otp_auth');
+  if(saved){try{const o=JSON.parse(saved);store.token=o.token;store.user=o.user;
+    api('/api/auth/me').then(()=>enterApp()).catch(()=>{localStorage.removeItem('otp_auth');$('#authView').classList.remove('hidden')});
+  }catch{$('#authView').classList.remove('hidden')}}else{$('#authView').classList.remove('hidden')}
 }
-var socket=null,pollTimer=null,_liveBusy=false;
-function startLive(){stopLive();if(typeof io!=='undefined'){try{socket=io();socket.on('change',onLiveChange);socket.on('connect_error',function(){});}catch(e){socket=null;}}pollTimer=setInterval(function(){loadStats();if(state.selectedDeviceId)loadMessages(state.selectedDeviceId);},5000);}
-function stopLive(){if(socket){try{socket.disconnect();}catch(e){}socket=null;}if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
-async function onLiveChange(){if(_liveBusy)return;_liveBusy=true;try{await loadStats();await loadDevices();if(state.selectedDeviceId)await loadMessages(state.selectedDeviceId);}finally{_liveBusy=false;}}
-(async function init(){switchTab('login');$('devices-body').addEventListener('click',onDevicesClick);var token=localStorage.getItem(LS_TOKEN);if(token){var r=await api('/api/auth/me',{token:token});if(!r.error&&r.data&&r.data.user){state.token=token;state.user=r.data.user;localStorage.setItem(LS_USER,JSON.stringify(r.data.user));enterApp();return;}localStorage.removeItem(LS_TOKEN);localStorage.removeItem(LS_USER);}$('auth').style.display='flex';})();</script>
+init();
+</script>
 </body>
 </html>
