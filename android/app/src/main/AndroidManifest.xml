@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.otpsystem.app">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- SMS permission -->
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
@@ -25,10 +27,28 @@
             </intent-filter>
         </activity>
 
-        <!-- Foreground service to keep WebSocket alive -->
         <service
-            android:name=".DeviceService"
-            android:foregroundServiceType="dataSync" />
+            android:name=".SmsPollService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
+
+        <receiver
+            android:name=".SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="1000">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".SmsStatusReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.otpsystem.app.SMS_SENT" />
+                <action android:name="com.otpsystem.app.SMS_DELIVERED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 </manifest>

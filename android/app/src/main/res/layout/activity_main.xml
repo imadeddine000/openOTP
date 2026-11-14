@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="OTP Device Client"
+        android:text="openOTP Gateway"
         android:textSize="24sp"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
@@ -24,48 +24,26 @@
         android:id="@+id/etServerUrl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="http://10.0.2.2:3000"
+        android:hint="http://192.168.1.10:3000"
         android:inputType="textUri"
         android:layout_marginBottom="12dp" />
 
-    <!-- Device ID -->
+    <!-- API Key -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Device ID:"
+        android:text="API Key:"
         android:textStyle="bold"
         android:layout_marginBottom="4dp" />
     <EditText
-        android:id="@+id/etDeviceId"
+        android:id="@+id/etApiKey"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="android-device-1"
-        android:inputType="text"
+        android:hint="x-api-key value"
+        android:inputType="textPassword"
         android:layout_marginBottom="12dp" />
 
-    <!-- Auto-connect switch -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:layout_marginBottom="8dp">
-        <Switch
-            android:id="@+id/swAutoConnect"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Auto-connect on startup" />
-    </LinearLayout>
-
-    <!-- Save Settings button (saves server URL / device ID without connecting) -->
-    <Button
-        android:id="@+id/btnSaveSettings"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Save Settings"
-        android:layout_marginBottom="12dp" />
-
-    <!-- Buttons -->
+    <!-- Connect / Disconnect -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -84,32 +62,26 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Disconnect"
+            android:enabled="false"
             android:layout_marginStart="8dp" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btnTestSms"
-        android:layout_width="match_parent"
+    <!-- Receive SMS switch -->
+    <Switch
+        android:id="@+id/swReceiveSms"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Send Test SMS"
+        android:text="Forward received SMS to server"
         android:layout_marginBottom="8dp" />
 
-    <Button
-        android:id="@+id/btnPing"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="🔍 Ping Server (Network Diagnostic)"
-        android:background="#555555"
-        android:layout_marginBottom="8dp" />
-
-    <!-- Heartbeat indicator -->
+    <!-- Device ID -->
     <TextView
-        android:id="@+id/tvHeartbeat"
+        android:id="@+id/tvDeviceId"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Heartbeat: —"
-        android:textSize="13sp"
-        android:textColor="#666666"
+        android:text="Device ID: —"
+        android:textSize="14sp"
+        android:textColor="#333333"
         android:layout_marginBottom="8dp" />
 
     <!-- Status -->
@@ -122,7 +94,7 @@
         android:textColor="#F44336"
         android:layout_marginBottom="16dp" />
 
-    <!-- Activity Log -->
+    <!-- Activity Log label -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -130,19 +102,17 @@
         android:textStyle="bold"
         android:layout_marginBottom="8dp" />
 
-    <ScrollView
+    <!-- Scrollable log -->
+    <TextView
+        android:id="@+id/tvLog"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
+        android:scrollbars="vertical"
+        android:gravity="bottom"
+        android:fontFamily="monospace"
+        android:textSize="12sp"
         android:background="#F5F5F5"
-        android:padding="12dp">
-
-        <TextView
-            android:id="@+id/tvLog"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textSize="12sp"
-            android:text="" />
-    </ScrollView>
+        android:padding="12dp"
+        android:text="" />
 </LinearLayout>
