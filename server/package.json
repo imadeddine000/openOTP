@@ -1,0 +1,17 @@
+{
+  "name": "otp-system-server",
+  "version": "1.0.0",
+  "description": "OTP SMS dispatch system - central server with device queue management",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.5",
+    "socket.io-client": "^4.8.4",
+    "uuid": "^9.0.1"
+  }
+}
