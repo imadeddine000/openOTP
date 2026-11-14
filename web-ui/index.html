@@ -1,234 +1,317 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OTP System Dashboard</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
-    .header { background: #1a73e8; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
-    .header h1 { font-size: 20px; }
-    .connection-status { font-size: 14px; opacity: 0.9; }
-    .container { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-    .stat-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .stat-card .label { font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 4px; }
-    .stat-card .value { font-size: 28px; font-weight: 700; }
-    .stat-card.queued .value { color: #f5a623; }
-    .stat-card.dispatched .value { color: #1a73e8; }
-    .stat-card.sent .value { color: #34a853; }
-    .stat-card.failed .value { color: #ea4335; }
-    .panel { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
-    .panel h2 { font-size: 16px; margin-bottom: 16px; }
-    .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
-    .form-row input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-    .form-row input:focus { outline: none; border-color: #1a73e8; }
-    button { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; background: #1a73e8; color: #fff; }
-    button:hover { background: #1557b0; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; padding: 8px; border-bottom: 2px solid #eee; color: #888; font-weight: 600; }
-    td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
-    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-    .badge.queued { background: #fff3cd; color: #856404; }
-    .badge.dispatched { background: #d1ecf1; color: #0c5460; }
-    .badge.sent { background: #d4edda; color: #155724; }
-    .badge.failed { background: #f8d7da; color: #721c24; }
-    .badge.idle { background: #d4edda; color: #155724; }
-    .badge.busy { background: #fff3cd; color: #856404; }
-    .badge.offline { background: #f8d7da; color: #721c24; }
-    .empty { text-align: center; padding: 24px; color: #999; }
-    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
-    .dot.online { background: #34a853; box-shadow: 0 0 4px #34a853; }
-    .dot.offline { background: #ea4335; }
-    .dot.busy { background: #f5a623; }
-    .heartbeat-time { color: #888; font-size: 12px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openOTP — SMS Gateway</title>
+<style>:root{
+  --accent:#4f46e5; --accent-light:#6366f1; --accent-bg:#eef2ff;
+  --bg:#f4f5f7; --card:#ffffff; --text:#1f2937; --muted:#6b7280; --border:#e5e7eb;
+  --green:#16a34a; --green-bg:#dcfce7; --red:#dc2626; --red-bg:#fee2e2;
+  --amber:#d97706; --amber-bg:#fef3c7; --blue:#2563eb; --blue-bg:#dbeafe;
+  --gray:#6b7280; --gray-bg:#f3f4f6; --teal:#0d9488; --teal-bg:#ccfbf1;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-lg:0 4px 12px rgba(0,0,0,.1); --radius:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;border-radius:8px;font-size:14px;padding:10px 16px;transition:.15s}
+input,textarea{font-family:inherit;font-size:14px}
+#auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{background:var(--card);border-radius:16px;box-shadow:var(--shadow-lg);padding:40px;width:100%;max-width:420px}
+.auth-logo{font-size:28px;font-weight:800;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.auth-logo .dot,.brand .dot{width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.auth-sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+.tabs{display:flex;gap:4px;background:var(--gray-bg);border-radius:10px;padding:4px;margin-bottom:24px}
+.tab{flex:1;background:transparent;color:var(--muted);padding:9px;border-radius:8px;font-weight:600;font-size:14px}
+.tab.active{background:var(--card);color:var(--accent);box-shadow:var(--shadow)}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.field input{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:8px;outline:none;transition:.15s}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.btn-primary{background:var(--accent);color:#fff;width:100%;padding:12px;font-weight:600}
+.btn-primary:hover{background:var(--accent-light)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+.auth-msg{margin-top:14px;font-size:13px;text-align:center;min-height:18px}
+.error{color:var(--red)} .success{color:var(--green)}
+#app{display:none;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.brand{font-size:20px;font-weight:800;color:var(--accent);display:flex;align-items:center;gap:8px}
+.brand .dot{width:9px;height:9px}
+.header-right{display:flex;align-items:center;gap:16px}
+.user-email{font-size:14px;color:var(--muted)}
+.btn-ghost{background:transparent;color:var(--muted);padding:6px 12px;font-weight:600}
+.btn-ghost:hover{background:var(--gray-bg);color:var(--text)}
+main{max-width:1200px;margin:0 auto;padding:24px}
+.section-title{font-size:18px;font-weight:700;margin:28px 0 14px;display:flex;align-items:center;justify-content:space-between}
+.section-title:first-child{margin-top:0}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.stat-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+.stat-label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.stat-value{font-size:28px;font-weight:800;margin-top:6px}
+.stat-card.accent .stat-value{color:var(--accent)}
+.panel{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;padding:10px 12px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid var(--border)}
+td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr{cursor:pointer;transition:.1s}
+tbody tr:hover{background:var(--gray-bg)}
+tbody tr.selected{background:var(--accent-bg)}
+.dot-status{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.dot-online{background:var(--green);box-shadow:0 0 0 3px var(--green-bg)}
+.dot-offline{background:var(--gray);box-shadow:0 0 0 3px var(--gray-bg)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-blue{background:var(--blue-bg);color:var(--blue)}
+.badge-gray{background:var(--gray-bg);color:var(--gray)}
+.badge-teal{background:var(--teal-bg);color:var(--teal)}
+.btn-sm{padding:5px 10px;font-size:13px}
+.btn-danger{background:var(--red-bg);color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.enabled-pill{font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px}
+.enabled-yes{background:var(--green-bg);color:var(--green)}
+.enabled-no{background:var(--gray-bg);color:var(--gray)}
+.send-grid{display:grid;grid-template-columns:1fr 1.4fr;gap:16px}
+.send-grid textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;resize:vertical;outline:none;transition:.15s}
+.send-grid textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+.send-actions{display:flex;align-items:center;gap:12px;margin-top:14px}
+.send-feedback{font-size:13px}
+.lbl{display:block;margin-bottom:6px;font-weight:600;color:var(--muted);font-size:13px}
+.apikey-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.apikey-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;background:var(--gray-bg);padding:8px 12px;border-radius:8px;flex:1;min-width:200px;word-break:break-all}
+.btn-outline{background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 14px;font-weight:600}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.empty,.loading{text-align:center;color:var(--muted);padding:30px;font-size:14px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;box-shadow:var(--shadow-lg);z-index:100;opacity:0;transition:.25s;pointer-events:none}
+.toast.show{opacity:1}
+.muted{color:var(--muted);font-size:13px}
+@media(max-width:640px){
+  .send-grid{grid-template-columns:1fr}
+  header{padding:0 14px} main{padding:14px}
+  .user-email{display:none} .auth-card{padding:28px}
+}</style>
 </head>
 <body>
-  <div class="header">
-    <h1>📱 OTP System Dashboard</h1>
-    <div class="connection-status" id="connStatus">Connecting…</div>
+<!-- Auth -->
+<div id="auth">
+  <div class="auth-card">
+    <div class="auth-logo"><span class="dot"></span>openOTP</div>
+    <div class="auth-sub">SMS Gateway Dashboard</div>
+    <div class="tabs">
+      <button type="button" class="tab active" id="tab-login" onclick="switchTab('login')">Login</button>
+      <button type="button" class="tab" id="tab-register" onclick="switchTab('register')">Register</button>
+    </div>
+    <form id="auth-form" onsubmit="submitAuth();return false">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn-primary" id="auth-submit">Login</button>
+      <div class="auth-msg" id="auth-msg"></div>
+    </form>
   </div>
-
-  <div class="container">
-    <div class="stats-grid">
-      <div class="stat-card queued"><div class="label">Queued</div><div class="value" id="statQueued">0</div></div>
-      <div class="stat-card dispatched"><div class="label">Dispatched</div><div class="value" id="statDispatched">0</div></div>
-      <div class="stat-card sent"><div class="label">Sent</div><div class="value" id="statSent">0</div></div>
-      <div class="stat-card failed"><div class="label">Failed</div><div class="value" id="statFailed">0</div></div>
-      <div class="stat-card"><div class="label">Devices Online</div><div class="value" id="statDevicesOnline" style="color:#34a853">0</div></div>
+</div>
+<!-- App -->
+<div id="app">
+  <header>
+    <div class="brand"><span class="dot"></span>openOTP</div>
+    <div class="header-right">
+      <span class="user-email" id="user-email"></span>
+      <button class="btn-ghost" onclick="logout()">Logout</button>
     </div>
-
+  </header>
+  <main>
+    <div class="section-title">Overview</div>
+    <div class="stats-grid" id="stats-grid"></div>
+    <div class="section-title">Devices</div>
     <div class="panel">
-      <h2>Send OTP Request</h2>
-      <form id="otpForm">
-        <div class="form-row">
-          <input type="text" id="phone" placeholder="Phone number (e.g. +1234567890)" required>
-          <input type="text" id="message" placeholder="OTP message (e.g. Your code is 123456)" required>
-          <button type="submit">Submit</button>
+      <div id="devices-loading" class="loading">Loading devices…</div>
+      <div id="devices-empty" class="empty" style="display:none">No devices registered.</div>
+      <div class="table-wrap" id="devices-wrap" style="display:none">
+        <table>
+          <thead><tr><th>Status</th><th>Name</th><th>Brand / Model</th><th>OS</th><th>Sent</th><th>Received</th><th>Enabled</th><th></th></tr></thead>
+          <tbody id="devices-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="device-panels" style="display:none">
+      <div class="section-title">Send SMS <span class="muted" id="send-device-name"></span></div>
+      <div class="panel">
+        <div class="send-grid">
+          <div>
+            <span class="lbl">Recipients (one per line or comma-separated)</span>
+            <textarea id="recipients" rows="5" placeholder="+1234567890&#10;+0987654321"></textarea>
+          </div>
+          <div>
+            <span class="lbl">Message</span>
+            <textarea id="message" rows="5" placeholder="Your message…"></textarea>
+          </div>
         </div>
-      </form>
-    </div>
-
-    <div class="panel">
-      <h2>Heartbeat Configuration</h2>
-      <form id="heartbeatForm">
-        <div class="form-row">
-          <input type="number" id="heartbeatInterval" placeholder="Interval (ms), e.g. 15000" min="5000" max="120000" step="1000" value="15000" required>
-          <input type="text" id="heartbeatTarget" placeholder="Device ID or * for all" value="*">
-          <button type="submit">Apply</button>
+        <div class="send-actions">
+          <button class="btn-primary" style="width:auto" id="send-btn" onclick="sendSMS()">Send</button>
+          <span class="send-feedback" id="send-feedback"></span>
         </div>
-        <small style="color:#888">Range: 5000–120000 ms. Use * to broadcast to all devices.</small>
-      </form>
+      </div>
+      <div class="section-title">Message History <span class="muted" id="msg-device-name"></span></div>
+      <div class="panel">
+        <div id="msg-loading" class="loading">Loading messages…</div>
+        <div id="msg-empty" class="empty" style="display:none">No messages for this device.</div>
+        <div class="table-wrap" id="msg-wrap" style="display:none">
+          <table>
+            <thead><tr><th>Type</th><th>From / To</th><th>Message</th><th>Status</th><th>Time</th></tr></thead>
+            <tbody id="msg-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
-
+    <div class="section-title">API Key</div>
     <div class="panel">
-      <h2>Connected Devices</h2>
-      <div id="devicesTable"><div class="empty">No devices connected</div></div>
+      <div class="apikey-row">
+        <code class="apikey-code" id="apikey-code">—</code>
+        <button class="btn-outline" onclick="copyApiKey()">Copy</button>
+        <button class="btn-outline" onclick="rotateApiKey()">Rotate API key</button>
+      </div>
+      <div class="muted" id="apikey-msg" style="margin-top:10px"></div>
     </div>
-
-    <div class="panel">
-      <h2>Recent Requests</h2>
-      <div id="requestsTable"><div class="empty">No requests yet</div></div>
-    </div>
-  </div>
-
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-  <script>
-    const API_BASE = window.location.origin.replace(/:\d+$/, ':3000');
-    let socket = null;
-
-    // --- Socket.io connection ---
-    function connectSocket() {
-      socket = io(API_BASE, { transports: ['websocket', 'polling'] });
-
-      socket.on('connect', () => {
-        document.getElementById('connStatus').textContent = '● Connected';
-        document.getElementById('connStatus').style.color = '#4caf50';
-      });
-
-      socket.on('disconnect', () => {
-        document.getElementById('connStatus').textContent = '● Disconnected';
-        document.getElementById('connStatus').style.color = '#f44336';
-      });
-
-      socket.on('stats', (stats) => {
-        renderStats(stats);
-        renderDevices(stats.connectedDevices || []);
-        renderRequests(stats.recentRequests || []);
-      });
-    }
-
-    // --- REST form submission ---
-    document.getElementById('otpForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const phone = document.getElementById('phone').value.trim();
-      const message = document.getElementById('message').value.trim();
-      const btn = e.target.querySelector('button');
-      btn.disabled = true; btn.textContent = 'Sending…';
-      try {
-        const res = await fetch(`${API_BASE}/api/otp/request`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, message })
-        });
-        const data = await res.json();
-        if (!data.success) alert('Error: ' + (data.error || 'Unknown'));
-        else { document.getElementById('message').value = ''; }
-      } catch (err) { alert('Request failed: ' + err.message); }
-      btn.disabled = false; btn.textContent = 'Submit';
-    });
-
-    // --- Heartbeat config form ---
-    document.getElementById('heartbeatForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const interval = parseInt(document.getElementById('heartbeatInterval').value, 10);
-      const target = document.getElementById('heartbeatTarget').value.trim() || '*';
-      const btn = e.target.querySelector('button');
-      btn.disabled = true; btn.textContent = 'Applying…';
-      try {
-        const res = await fetch(`${API_BASE}/api/otp/heartbeat-config`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ interval, target })
-        });
-        const data = await res.json();
-        if (!data.success) alert('Error: ' + (data.error || 'Unknown'));
-        else alert(`Heartbeat set to ${interval}ms for ${target}`);
-      } catch (err) { alert('Request failed: ' + err.message); }
-      btn.disabled = false; btn.textContent = 'Apply';
-    });
-
-    // --- Renderers ---
-    function renderStats(s) {
-      document.getElementById('statQueued').textContent = s.queueLength ?? 0;
-      document.getElementById('statDispatched').textContent = s.dispatchedCount ?? 0;
-      document.getElementById('statSent').textContent = s.sentCount ?? 0;
-      document.getElementById('statFailed').textContent = s.failedCount ?? 0;
-      const onlineCount = (s.connectedDevices || []).filter(d => d.isOnline).length;
-      document.getElementById('statDevicesOnline').textContent = onlineCount;
-    }
-
-    function renderDevices(devices) {
-      const el = document.getElementById('devicesTable');
-      if (!devices || devices.length === 0) { el.innerHTML = '<div class="empty">No devices connected</div>'; return; }
-      let html = '<table><tr><th></th><th>Device ID</th><th>Model</th><th>Status</th><th>Last Heartbeat</th></tr>';
-      devices.forEach(d => {
-        const isOnline = d.isOnline !== false && d.status !== 'offline';
-        const dotCls = isOnline ? (d.status === 'busy' ? 'busy' : 'online') : 'offline';
-        const badgeCls = d.status || 'idle';
-        const hbTime = d.lastHeartbeat ? new Date(d.lastHeartbeat).toLocaleTimeString() : '—';
-        const hbAgo = d.lastHeartbeat ? timeAgo(d.lastHeartbeat) : '';
-        html += `<tr>
-          <td><span class="dot ${dotCls}"></span></td>
-          <td>${d.id}</td>
-          <td>${d.model || '—'}</td>
-          <td><span class="badge ${badgeCls}">${d.status}</span></td>
-          <td><span class="heartbeat-time">${hbTime} ${hbAgo}</span></td>
-        </tr>`;
-      });
-      html += '</table>';
-      el.innerHTML = html;
-    }
-
-    function timeAgo(iso) {
-      const diff = Date.now() - new Date(iso).getTime();
-      const s = Math.floor(diff / 1000);
-      if (s < 60) return `(${s}s ago)`;
-      const m = Math.floor(s / 60);
-      if (m < 60) return `(${m}m ago)`;
-      return `(${Math.floor(m / 60)}h ago)`;
-    }
-
-    function renderRequests(reqs) {
-      const el = document.getElementById('requestsTable');
-      const existing = el.dataset.requests ? JSON.parse(el.dataset.requests) : [];
-      reqs.forEach(r => {
-        const idx = existing.findIndex(e => e.id === r.id);
-        if (idx >= 0) existing[idx] = r; else existing.unshift(r);
-      });
-      const top = existing.slice(0, 20);
-      el.dataset.requests = JSON.stringify(top);
-      if (top.length === 0) { el.innerHTML = '<div class="empty">No requests yet</div>'; return; }
-      let html = '<table><tr><th>ID</th><th>Phone</th><th>Message</th><th>Status</th><th>Retry</th><th>Device</th><th>Time</th></tr>';
-      top.forEach(r => {
-        const cls = r.status || 'queued';
-        const dev = r.deviceId || '—';
-        const t = r.createdAt ? new Date(r.createdAt).toLocaleTimeString() : '—';
-        const retry = r.retryCount != null ? r.retryCount : 0;
-        html += `<tr><td>${r.id.slice(0,8)}</td><td>${r.phone}</td><td>${r.message}</td><td><span class="badge ${cls}">${cls}</span></td><td>${retry}</td><td>${dev}</td><td>${t}</td></tr>`;
-      });
-      html += '</table>';
-      el.innerHTML = html;
-    }
-
-    // --- Initial load ---
-    connectSocket();
-    fetch(`${API_BASE}/api/otp/requests`).then(r => r.json()).then(d => {
-      if (d.success) renderRequests(d.requests);
-    }).catch(() => {});
-  </script>
+  </main>
+</div>
+<div class="toast" id="toast"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>var state={token:null,user:null,selectedDeviceId:null,devices:[],_tab:'login'};
+var LS_TOKEN='openotp_token',LS_USER='openotp_user';
+async function api(path,opts){
+  opts=opts||{};var method=opts.method||'GET';
+  var headers={'Content-Type':'application/json'};
+  if(opts.token)headers['Authorization']='Bearer '+opts.token;
+  try{
+    var res=await fetch(path,{method:method,headers:headers,body:opts.body?JSON.stringify(opts.body):undefined});
+    var text=await res.text();var json;
+    try{json=JSON.parse(text);}catch(e){json={error:text||'Invalid response'};}
+    if(!res.ok){var msg=(json&&json.error)?json.error:('HTTP '+res.status);return{error:msg};}
+    return json;
+  }catch(e){return{error:e.message||'Network error'};}
+}
+function $(id){return document.getElementById(id);}
+function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},2600);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function fmtDateTime(ms){if(!ms)return'—';var d=new Date(ms);if(isNaN(d))return'—';return d.toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
+function relTime(ms){if(!ms)return'—';var d=new Date(ms);if(isNaN(d))return'—';var diff=Date.now()-ms,s=Math.floor(diff/1000);if(s<5)return'just now';if(s<60)return s+'s ago';var m=Math.floor(s/60);if(m<60)return m+'m ago';var h=Math.floor(m/60);if(h<24)return h+'h ago';var dd=Math.floor(h/24);if(dd<7)return dd+'d ago';return fmtDateTime(ms);}
+function statusBadge(status){var s=String(status||'').toLowerCase();var map={pending:'badge-amber',dispatched:'badge-blue',sent:'badge-blue',delivered:'badge-green',failed:'badge-red',received:'badge-teal',queued:'badge-gray',scheduled:'badge-gray'};return'<span class="badge '+(map[s]||'badge-gray')+'">'+esc(status||'unknown')+'</span>';}
+function switchTab(which){state._tab=which;$('tab-login').classList.toggle('active',which==='login');$('tab-register').classList.toggle('active',which==='register');$('auth-submit').textContent=which==='login'?'Login':'Register';$('auth-msg').textContent='';$('auth-msg').className='auth-msg';}
+function setAuthMsg(msg,type){var el=$('auth-msg');el.textContent=msg;el.className='auth-msg '+(type||'');}
+async function submitAuth(){
+  var email=$('email').value.trim(),password=$('password').value;
+  if(!email||!password){setAuthMsg('Please enter email and password.','error');return;}
+  var btn=$('auth-submit');btn.disabled=true;btn.textContent='Please wait…';
+  var path=state._tab==='register'?'/api/auth/register':'/api/auth/login';
+  var r=await api(path,{method:'POST',body:{email:email,password:password}});
+  btn.disabled=false;btn.textContent=state._tab==='login'?'Login':'Register';
+  if(r.error){setAuthMsg(r.error,'error');return;}
+  var data=r.data||r,user=data.user,token=data.token;
+  if(!token||!user){setAuthMsg('Unexpected response from server.','error');return;}
+  saveSession(token,user);enterApp();
+}
+function saveSession(token,user){state.token=token;state.user=user;localStorage.setItem(LS_TOKEN,token);localStorage.setItem(LS_USER,JSON.stringify(user));}
+function clearSession(){state.token=null;state.user=null;state.selectedDeviceId=null;localStorage.removeItem(LS_TOKEN);localStorage.removeItem(LS_USER);}
+function logout(){clearSession();stopLive();$('app').style.display='none';$('auth').style.display='flex';switchTab('login');$('password').value='';setAuthMsg('','');}
+async function enterApp(){
+  $('auth').style.display='none';$('app').style.display='block';
+  $('user-email').textContent=(state.user&&state.user.email)?state.user.email:'';
+  $('apikey-code').textContent=(state.user&&state.user.apiKey)?state.user.apiKey:'—';
+  $('apikey-msg').textContent='';$('apikey-msg').className='muted';
+  state.selectedDeviceId=null;$('device-panels').style.display='none';
+  await Promise.all([loadStats(),loadDevices()]);startLive();
+}
+async function loadStats(){
+  var r=await api('/gateway/stats',{token:state.token});
+  if(r.error){$('stats-grid').innerHTML='<div class="empty error">Stats: '+esc(r.error)+'</div>';return;}
+  var d=r.data||r;
+  var cards=[['Devices',d.devices,'accent'],['Online',d.devicesOnline,''],['Sent',d.sent,''],['Received',d.received,''],['Pending',d.pending,''],['Delivered',d.delivered,''],['Failed',d.failed,'']];
+  $('stats-grid').innerHTML=cards.map(function(c){return'<div class="stat-card '+(c[2]||'')+'"><div class="stat-label">'+c[0]+'</div><div class="stat-value">'+esc(c[1]==null?0:c[1])+'</div></div>';}).join('');
+}async function loadDevices(){
+  $('devices-loading').style.display='block';$('devices-empty').style.display='none';$('devices-wrap').style.display='none';
+  var r=await api('/gateway/devices',{token:state.token});
+  $('devices-loading').style.display='none';
+  if(r.error){$('devices-empty').style.display='block';$('devices-empty').textContent='Devices: '+r.error;return;}
+  var list=r.data||r||[];if(!Array.isArray(list))list=[];state.devices=list;
+  if(!list.length){$('devices-empty').style.display='block';return;}
+  $('devices-wrap').style.display='block';
+  $('devices-body').innerHTML=list.map(function(dev){
+    var sel=state.selectedDeviceId===dev.id?' selected':'',dot=dev.online?'dot-online':'dot-offline';
+    var en=dev.enabled?'<span class="enabled-pill enabled-yes">Yes</span>':'<span class="enabled-pill enabled-no">No</span>';
+    var os=esc(dev.os||'—')+(dev.osVersion?(' '+esc(dev.osVersion)):'');
+    return'<tr data-id="'+esc(dev.id)+'" class="'+sel+'"><td><span class="dot-status '+dot+'"></span>'+(dev.online?'Online':'Offline')+'</td><td>'+esc(dev.name||dev.id)+'</td><td>'+esc(dev.brand||'—')+' / '+esc(dev.model||'—')+'</td><td>'+os+'</td><td>'+esc(dev.sentSMSCount==null?0:dev.sentSMSCount)+'</td><td>'+esc(dev.receivedSMSCount==null?0:dev.receivedSMSCount)+'</td><td>'+en+'</td><td><button class="btn-sm btn-danger">Delete</button></td></tr>';
+  }).join('');
+}
+function onDevicesClick(e){var del=e.target.closest('.btn-danger');if(del){e.stopPropagation();var tr=del.closest('tr');if(tr)deleteDevice(tr.getAttribute('data-id'));return;}var tr=e.target.closest('tr');if(tr)selectDevice(tr.getAttribute('data-id'));}
+function selectDevice(id){
+  state.selectedDeviceId=id;
+  var rows=document.querySelectorAll('#devices-body tr');
+  for(var i=0;i<rows.length;i++)rows[i].classList.toggle('selected',rows[i].getAttribute('data-id')===id);
+  var dev=null;for(var j=0;j<state.devices.length;j++)if(state.devices[j].id===id){dev=state.devices[j];break;}
+  var name=dev?(dev.name||dev.id):id;
+  $('device-panels').style.display='block';$('send-device-name').textContent='— '+name;$('msg-device-name').textContent='— '+name;
+  $('send-feedback').textContent='';$('send-feedback').className='send-feedback';loadMessages(id);
+}
+async function deleteDevice(id){
+  if(!confirm('Delete this device?'))return;
+  var r=await api('/gateway/devices/'+encodeURIComponent(id),{method:'DELETE',token:state.token});
+  if(r.error){toast('Delete failed: '+r.error);return;}
+  toast('Device deleted');
+  if(state.selectedDeviceId===id){state.selectedDeviceId=null;$('device-panels').style.display='none';}
+  await Promise.all([loadStats(),loadDevices()]);
+}
+async function sendSMS(){
+  var id=state.selectedDeviceId;if(!id)return;
+  var recipients=$('recipients').value.split(/[\n,]/).map(function(s){return s.trim();}).filter(function(s){return!!s;}),message=$('message').value,fb=$('send-feedback');
+  if(!recipients.length){fb.textContent='Enter at least one recipient.';fb.className='send-feedback error';return;}
+  if(!message){fb.textContent='Message is empty.';fb.className='send-feedback error';return;}
+  var btn=$('send-btn');btn.disabled=true;btn.textContent='Sending…';fb.textContent='';fb.className='send-feedback';
+  var r=await api('/gateway/devices/'+encodeURIComponent(id)+'/send-sms',{method:'POST',body:{recipients:recipients,message:message},token:state.token});
+  btn.disabled=false;btn.textContent='Send';
+  if(r.error){fb.textContent='Error: '+r.error;fb.className='send-feedback error';return;}
+  var d=r.data||r;fb.textContent='Sent '+esc(d.count==null?recipients.length:d.count)+' message(s)'+(d.smsBatchId?(' · batch '+esc(d.smsBatchId)):'')+'.';fb.className='send-feedback success';
+  $('recipients').value='';$('message').value='';await Promise.all([loadStats(),loadDevices(),loadMessages(id)]);
+}
+async function loadMessages(id){
+  if(!id)return;
+  $('msg-loading').style.display='block';$('msg-empty').style.display='none';$('msg-wrap').style.display='none';
+  var r=await api('/gateway/devices/'+encodeURIComponent(id)+'/sms?limit=50',{token:state.token});
+  $('msg-loading').style.display='none';
+  if(r.error){$('msg-empty').style.display='block';$('msg-empty').textContent='Messages: '+r.error;return;}
+  var list=r.data||r||[];if(!Array.isArray(list))list=[];
+  if(!list.length){$('msg-empty').style.display='block';return;}
+  $('msg-wrap').style.display='block';
+  $('msg-body').innerHTML=list.map(function(m){
+    var sent=m.type==='sent',fromto=sent?('To: '+esc(m.recipient||'—')):('From: '+esc(m.sender||'—'));
+    var badge=sent?'<span class="badge badge-blue">Sent</span>':'<span class="badge badge-teal">Received</span>';
+    var msg=esc(m.message||''),trunc=msg.length>60?msg.slice(0,60)+'…':msg;
+    var time=m.type==='received'?(m.receivedAt||m.createdAt):(m.sentAt||m.createdAt);
+    return'<tr><td>'+badge+'</td><td>'+fromto+'</td><td title="'+msg.replace(/"/g,'&quot;')+'">'+trunc+'</td><td>'+statusBadge(m.status)+'</td><td title="'+fmtDateTime(time)+'">'+relTime(time)+'</td></tr>';
+  }).join('');
+}
+async function copyApiKey(){
+  var key=state.user&&state.user.apiKey;if(!key){toast('No API key');return;}
+  try{await navigator.clipboard.writeText(key);toast('API key copied');}catch(e){var ta=document.createElement('textarea');ta.value=key;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('API key copied');}catch(_){toast('Copy failed');}document.body.removeChild(ta);}
+}
+async function rotateApiKey(){
+  var r=await api('/api/auth/api-key',{method:'POST',token:state.token}),el=$('apikey-msg');
+  if(r.error){el.textContent='Error: '+r.error;el.className='muted error';return;}
+  var user=(r.data&&r.data.user)||r.data||r.user||state.user;state.user=user;localStorage.setItem(LS_USER,JSON.stringify(user));
+  $('apikey-code').textContent=user.apiKey||'—';el.textContent='API key rotated.';el.className='muted success';toast('API key rotated');
+}
+var socket=null,pollTimer=null,_liveBusy=false;
+function startLive(){stopLive();if(typeof io!=='undefined'){try{socket=io();socket.on('change',onLiveChange);socket.on('connect_error',function(){});}catch(e){socket=null;}}pollTimer=setInterval(function(){loadStats();if(state.selectedDeviceId)loadMessages(state.selectedDeviceId);},5000);}
+function stopLive(){if(socket){try{socket.disconnect();}catch(e){}socket=null;}if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+async function onLiveChange(){if(_liveBusy)return;_liveBusy=true;try{await loadStats();await loadDevices();if(state.selectedDeviceId)await loadMessages(state.selectedDeviceId);}finally{_liveBusy=false;}}
+(async function init(){switchTab('login');$('devices-body').addEventListener('click',onDevicesClick);var token=localStorage.getItem(LS_TOKEN);if(token){var r=await api('/api/auth/me',{token:token});if(!r.error&&r.data&&r.data.user){state.token=token;state.user=r.data.user;localStorage.setItem(LS_USER,JSON.stringify(r.data.user));enterApp();return;}localStorage.removeItem(LS_TOKEN);localStorage.removeItem(LS_USER);}$('auth').style.display='flex';})();</script>
 </body>
 </html>
