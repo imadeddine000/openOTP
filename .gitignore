@@ -1,0 +1,43 @@
+# ---- Node.js / Server ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+.env.*
+!.env.example
+
+# ---- Android ----
+# Build outputs
+**/build/
+# Gradle wrapper cache
+.gradle/
+# Machine-specific SDK location
+local.properties
+# APKs / AABs / mapping files
+*.apk
+*.aab
+*.ap_
+*.dex
+*.mapping
+# Keystore / signing
+*.keystore
+*.jks
+!debug.keystore
+# Native libs extracted
+*.so
+
+# ---- IDE / Editor ----
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ---- Logs / Misc ----
+*.log
+logs/
+pids/
+*.pid
