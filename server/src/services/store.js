@@ -132,7 +132,7 @@ function getDevicesByUser(userId) { return Object.values(state.devices).filter((
 function updateDevice(id, patch = {}) {
   const d = state.devices[id];
   if (!d) return null;
-  const allowed = ['name','brand','manufacturer','model','os','osVersion','osApiLevel','appVersionName','enabled','simInfo'];
+  const allowed = ['name','brand','manufacturer','model','os','osVersion','osApiLevel','appVersionName','enabled','simInfo','simRouting'];
   for (const k of allowed) if (k in patch) d[k] = patch[k];
   d.lastSeenAt = Date.now();
   save();
@@ -150,12 +150,23 @@ function touchDevice(id) {
   const d = state.devices[id];
   if (d) { d.lastSeenAt = Date.now(); save(); }
 }
+function rotateSim(deviceId) {
+  const d = state.devices[deviceId];
+  if (!d) return null;
+  const sims = (d.simInfo && Array.isArray(d.simInfo.sims)) ? d.simInfo.sims.filter((s) => s && s.subscriptionId != null) : [];
+  if (!sims.length) return null;
+  const i = (d.simRotationIndex || 0) % sims.length;
+  d.simRotationIndex = i + 1;
+  save();
+  return { subscriptionId: sims[i].subscriptionId, slotIndex: sims[i].slotIndex != null ? sims[i].slotIndex : null };
+}
 function publicDevice(d) {
   return {
     id: d.id, name: d.name, brand: d.brand, manufacturer: d.manufacturer, model: d.model,
     os: d.os, osVersion: d.osVersion, osApiLevel: d.osApiLevel, appVersionName: d.appVersionName,
     enabled: d.enabled, lastSeenAt: d.lastSeenAt, sentSMSCount: d.sentSMSCount || 0,
     receivedSMSCount: d.receivedSMSCount || 0, online: isDeviceOnline(d), createdAt: d.createdAt,
+    simInfo: d.simInfo || null, simRouting: d.simRouting || null,
   };
 }
 
@@ -280,7 +291,7 @@ function getStats(userId) {
 
 module.exports = {
   createUser, findUserByEmail, findUserByApiKey, findUserById, rotateApiKey, publicUser, verifyPassword,
-  createDevice, getDevice, getDevicesByUser, updateDevice, deleteDevice, touchDevice, publicDevice, isDeviceOnline,
+  createDevice, getDevice, getDevicesByUser, updateDevice, deleteDevice, touchDevice, rotateSim, publicDevice, isDeviceOnline,
   createBatch, createMessage, getMessage, getMessagesByDevice, getPendingMessages, claimMessages,
   updateMessageStatus, receiveSms, getBatch, getBatchWithMessages, getStats,
 };

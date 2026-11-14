@@ -20,6 +20,31 @@ function claimedPayload(m) {
     simSubscriptionId: m.simSubscriptionId, simSlotIndex: m.simSlotIndex,
   };
 }
+function spamCode() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+/** Append a unique random code on a new line so carriers don't flag repeated identical SMS as spam. */
+function withSpamCode(message) { return message + '\n#' + spamCode(); }
+/**
+ * Decide which SIM a message should use:
+ *  1. explicit simSubscriptionId/simSlotIndex in the request (UI per-send choice or API param)
+ *  2. device's saved routing config: 'sim' = always a specific SIM, 'roundrobin' = alternate across all SIMs
+ *  3. 'any'/unset = let the phone pick its default SIM
+ */
+function resolveSim(d, body) {
+  if (body && body.simSubscriptionId != null) {
+    return { subscriptionId: body.simSubscriptionId, slotIndex: body.simSlotIndex != null ? body.simSlotIndex : null };
+  }
+  const r = d.simRouting || {};
+  if (r.mode === 'sim' && r.subscriptionId != null) {
+    return { subscriptionId: r.subscriptionId, slotIndex: r.slotIndex != null ? r.slotIndex : null };
+  }
+  if (r.mode === 'roundrobin') return store.rotateSim(d.id) || { subscriptionId: null, slotIndex: null };
+  return { subscriptionId: null, slotIndex: null };
+}
 
 router.get('/stats', authUser, (req, res) => { res.json({ data: store.getStats(req.user.id) }); });
 
@@ -53,9 +78,10 @@ router.post('/devices/:id/send-sms', authGateway, (req, res) => {
   const recipients = Array.isArray(req.body.recipients) ? req.body.recipients : [];
   const message = req.body.message || '';
   if (!recipients.length || !message) return res.status(400).json({ error: 'recipients and message are required' });
+  const sim = resolveSim(d, req.body);
   const batch = store.createBatch(req.user.id, d.id, message, recipients.length);
   const messages = recipients.map((r) =>
-    store.createMessage(req.user.id, d.id, batch.id, r, message, req.body.simSubscriptionId, req.body.simSlotIndex));
+    store.createMessage(req.user.id, d.id, batch.id, r, withSpamCode(message), sim.subscriptionId, sim.slotIndex));
   emit();
   res.json({ data: { success: true, count: messages.length, smsBatchId: batch.id,
     messages: messages.map((m) => ({ smsId: m.id, recipient: m.recipient, status: m.status })) } });
@@ -71,9 +97,10 @@ router.post('/devices/:id/send-bulk-sms', authGateway, (req, res) => {
     const recipients = Array.isArray(e.recipients) ? e.recipients : [];
     const message = e.message || '';
     if (!recipients.length || !message) continue;
+    const sim = resolveSim(d, e);
     const batch = store.createBatch(req.user.id, d.id, message, recipients.length);
     batchIds.push(batch.id);
-    for (const r of recipients) store.createMessage(req.user.id, d.id, batch.id, r, message, e.simSubscriptionId, e.simSlotIndex);
+    for (const r of recipients) store.createMessage(req.user.id, d.id, batch.id, r, withSpamCode(message), sim.subscriptionId, sim.slotIndex);
     total += recipients.length;
   }
   emit();
