@@ -1,0 +1,39 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.otpsystem.app'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.otpsystem.app"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    // Socket.io Java client
+    implementation('io.socket:socket.io-client:2.1.0') {
+        exclude group: 'org.json', module: 'json'
+    }
+    // OkHttp — MUST match the version engine.io-client 2.1.0 was built against.
+    // OkHttp 4.x is a Kotlin rewrite with different HTTP behavior that can cause
+    // "xhr poll error" in the Engine.IO polling transport.
+    implementation 'com.squareup.okhttp3:okhttp:3.12.12'
+}
