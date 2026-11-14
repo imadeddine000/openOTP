@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openOTP â€” Client API Docs</title>
+<style>
+  :root { --bg:#0f1115; --card:#171a21; --border:#262b36; --text:#e6e8ec; --muted:#8b94a5; --accent:#ff7a18; --green:#22c55e; --red:#ef4444; --code:#1e222b; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  header { padding:28px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+  header h1 { font-size:22px; } header .tag { background:var(--accent); color:#fff; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+  .wrap { max-width:980px; margin:0 auto; padding:24px; }
+  .lead { color:var(--muted); margin-bottom:24px; font-size:15px; }
+  .endpoint { background:var(--card); border:1px solid var(--border); border-radius:10px; margin-bottom:16px; overflow:hidden; }
+  .endpoint .head { padding:14px 18px; display:flex; align-items:center; gap:12px; cursor:pointer; }
+  .method { font-size:12px; font-weight:700; padding:4px 10px; border-radius:6px; font-family:monospace; }
+  .m-get { background:#1c3a2e; color:#4ade80; } .m-post { background:#3a2e1c; color:#fbbf24; } .m-patch { background:#2e2c3a; color:#a78bfa; }
+  .path { font-family:monospace; font-size:14px; } .desc { color:var(--muted); font-size:13px; margin-left:auto; }
+  .body { padding:0 18px 18px; display:none; }
+  .endpoint.open .body { display:block; }
+  pre { background:var(--code); padding:14px; border-radius:8px; overflow-x:auto; font-size:13px; margin:10px 05; }
+  .tabs { display:flex; gap:6px; margin-top:10px; } .tabs button { background:var(--code); color:var(--muted); border:1px solid var(--border); padding:5px 12px; border-radius:6px; cursor:pointer; font-size:12px; }
+  .tabs button.active { color:var(--accent); border-color:var(--accent); }
+  .try { background:var(--code); border-radius:8px; padding:16px; margin-top:12px; }
+  .try label { font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
+  .try input, .try textarea { width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px 10px; border-radius:6px; font-family:monospace; font-size:13px; margin-bottom:10px; }
+  .try button { background:var(--accent); color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer; font-weight:600; }
+  .res { margin-top:10px; font-size:12px; } .res ok { color:var(--green); } .res err { color:var(--red); }
+  footer { text-align:center; color:var(--muted); padding:30px; font-size:13px; }
+  a { color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+<header><h1>openOTP Client API</h1><span class="tag">v1</span><span style="color:var(--muted);margin-left:auto;font-size:13px"><a href="/">â† Dashboard</a></span></header>
+<div class="wrap">
+<p class="lead">Send OTP & SMS from your app through openOTP. Authenticate with your <code>x-api-key</code> header (the <code>sk_â€¦</code> key from the dashboard). The server auto-routes each message to one of your online Android gateway devices â€” you never deal with devices directly.</p>
+
+<div class="endpoint open"><div class="head"><span class="method m-get">GET</span><span class="path">/api/v1/health</span><span class="desc">Public health check</span></div>
+<div class="body"><p>Verify the service is reachable. No auth required.</p>
+<pre>curl https://your-server/api/v1/health</pre>
+<pre>{ "data": { "status": "ok", "service": "openOTP", "version": "1.0", "time": "2026-..." } }</pre></div></div>
+
+<div class="endpoint"><div class="head"><span class="method m-get">GET</span><span class="path">/api/v1/account</span><span class="desc">Account info & usage</span></div>
+<div class="body"><p>Returns your email, API key, and message statistics.</p>
+<pre>curl -H "x-api-key: sk_..." https://your-server/api/v1/account</pre></div></div>
+
+<div class="endpoint"><div class="head"><span class="method m-get">GET</span><span class="path">/api/v1/devices</span><span class="desc">List gateway devices</span></div>
+<div class="body"><p>List your Android gateway devices with online status, SIM info, and routing config.</p></div></div>
+
+<div class="endpoint open"><div class="head"><span class="method m-post">POST</span><span class="path">/api/v1/messages</span><span class="desc">Send a message / OTP</span></div>
+<div class="body"><p>Send one SMS. If <code>deviceId</code> is omitted the server picks an online device automatically.</p>
+<pre>curl -X POST https://your-server/api/v1/messages \
+  -H "x-api-key: sk_..." \
+  -H "Content-Type: application/json" \
+  -d '{"to":"+15551234567","message":"Your code is 4821"}'</pre>
+<pre>{ "data": { "id":"7649d22f-...", "status":"pending", "deviceId":"7600e7b2-...", "to":"+15551234567", "message":"Your code is 4821" } }</pre>
+<div class="try">
+<label>Your API key</label><input id="k1" placeholder="sk_..." value="">
+<label>to (phone number)</label><input id="t1" value="+15551234567">
+<label>message</label><input id="m1" value="Your OTP is 4821">
+<button onclick="trySend()">Send test message</button>
+<div class="res" id="r1"></div>
+</div></div></div>
+
+<div class="endpoint"><div class="head"><span class="method m-post">POST</span><span class="path">/api/v1/messages/batch</span><span class="desc">Send many at once</span></div>
+<div class="body"><p>Batch send. Accepts <code>{ messages: [{ to, message }] }</code> or <code>{ recipients: ["+1...","+2..."], message: "..." }</code>.</p></div></div>
+
+<div class="endpoint"><div class="head"><span class="method m-get">GET</span><span class="path">/api/v1/messages/:id</span><span class="desc">Get message status</span></div>
+<div class="body"><p>Poll a message by its <code>id</code> to check delivery status (<code>pending â†’ dispatched â†’ sent â†’ delivered</code> or <code>failed</code>).</p></div></div>
+
+<div class="endpoint"><div class="head"><span class="method m-get">GET</span><span class="path">/api/v1/messages</span><span class="desc">List messages</span></div>
+<div class="body"><p>Paginated list. Query params: <code>?page=1&limit=50&status=pending&deviceId=...</code></p></div></div>
+
+<h3 style="margin:24px 0 12px;color:var(--muted);font-size:14px">Quick start (JavaScript)</h3>
+<pre>const res = await fetch("https://your-server/api/v1/messages", {
+  method: "POST",
+  headers: { "x-api-key": "sk_your_key", "Content-Type": "application/json" },
+  body: JSON.stringify({ to: "+15551234567", message: "Your code is 4821" }),
+});
+const { data } = await res.json();
+console.log(data.id, data.status); // "7649d22f-..." "pending"
+
+// poll for delivery
+const status = await fetch(`https://your-server/api/v1/messages/${data.id}`, {
+  headers: { "x-api-key": "sk_your_key" },
+}).then(r => r.json());
+console.log(status.data.status); // "delivered"</pre>
+
+</div>
+<script>
+document.querySelectorAll('.endpoint .head').forEach(h => h.addEventListener('click', () => h.parentElement.classList.toggle('open')));
+async function trySend() {
+  const key = document.getElementById('k1').value.trim();
+  const to = document.getElementById('t1').value.trim();
+  const msg = document.getElementById('m1').value.trim();
+  const out = document.getElementById('r1');
+  if (!key) { out.innerHTML = '<err>Enter your API key first</err>'; return; }
+  out.innerHTML = 'Sendingâ€¦';
+  try {
+    const res = await fetch('/api/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to, message: msg }),
+    });
+    const json = await res.json();
+    if (res.ok) out.innerHTML = '<ok>âœ“ Sent!</ok> id=' + json.data.id + ' status=' + json.data.status + ' device=' + json.data.deviceId;
+    else out.innerHTML = '<err>' + res.status + ' ' + (json.error || '') + '</err>';
+  } catch (e) { out.innerHTML = '<err>' + e.message + '</err>'; }
+}
+</script>
+<footer>openOTP Client API v1 Â· <a href="/">Dashboard</a> Â· Authenticate with <code>x-api-key</code> header</footer>
+</body>
+</html>
