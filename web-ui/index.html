@@ -203,11 +203,13 @@ const ICONS = {
   copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
   sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>',
-  inbox:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6Z"/></svg>'
+  inbox:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6Z"/></svg>',
+  sim:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><path d="M8 2v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/><rect x="8.5" y="12" width="7" height="7" rx="1"/></svg>'
 };
 const NAV = [
   {id:'dashboard',label:'Dashboard',icon:'home'},
   {id:'messaging',label:'Messaging',icon:'send'},
+  {id:'simcards',label:'SIM Cards',icon:'sim'},
   {id:'webhooks',label:'Webhooks',icon:'webhook'},
   {id:'account',label:'Account',icon:'user'},
 ];
@@ -267,6 +269,7 @@ async function loadMessages(){if(!store.selDevice)return[];try{const r=await api
 function renderSection(){const m=$('#mainContent');
   if(store.section==='dashboard')m.innerHTML=dashboardHtml();
   else if(store.section==='messaging')m.innerHTML=messagingHtml();
+  else if(store.section==='simcards')m.innerHTML=simcardsHtml();
   else if(store.section==='webhooks')m.innerHTML=webhooksHtml();
   else if(store.section==='account')m.innerHTML=accountHtml();
   if(store.section==='dashboard'||store.section==='messaging')afterRender();
@@ -301,12 +304,58 @@ function messagingHtml(){
   return `<div class="page-head"><div><h2>Messaging</h2><p>Send SMS and view message history</p></div></div>
   <div class="card section"><div class="card-header"><span class="card-title">Send SMS</span></div><div class="card-pad">
     <div class="field"><label>Device</label><select class="select" id="selDev" onchange="store.selDevice=this.value;renderSection()">${opts||'<option>No devices</option>'}</select></div>
+    <div class="field"><label>SIM Card</label><select class="select" id="selSim">${simOptions(dev)}</select></div>
     <div class="field"><label>Recipients</label><textarea class="textarea" id="recip" placeholder="+1234567890, +1987654321 (one per line or comma-separated)"></textarea></div>
     <div class="field"><label>Message</label><textarea class="textarea" id="msg" placeholder="Your verification code is 123456" maxlength="160"></textarea><span class="hint" id="cnt">0 / 160</span></div>
     <button class="btn btn-primary" id="sendBtn" onclick="sendSms()">${ICONS.send} Send SMS</button>
   </div></div>
   <div class="card section"><div class="card-header"><span class="card-title">Message History</span><span class="muted" style="font-size:13px">${dev?esc(dev.brand+' '+dev.model):'No device'}</span></div>
     <div class="table-wrap" id="histWrap"><div class="empty">Loading…</div></div></div>`;
+}
+let simDirty=false;
+function simcardsHtml(){
+  const dev=store.devices.find(d=>d.id===store.selDevice);
+  const sims=(dev&&dev.simInfo&&Array.isArray(dev.simInfo.sims))?dev.simInfo.sims:[];
+  const r=(dev&&dev.simRouting)||{};
+  const opts=store.devices.map(d=>`<option value="${d.id}" ${d.id===store.selDevice?'selected':''}>${esc(d.brand||'?')} ${esc(d.model||'')} ${d.online?'●':'○'}</option>`).join('');
+  const simRows=sims.map(s=>`<tr><td class="mono">${s.slotIndex??'—'}</td><td>${esc(s.carrierName||'—')}</td><td>${esc(s.displayName||'—')}</td><td class="mono">${esc(s.number||'—')}</td><td class="mono">${s.subscriptionId??'—'}</td><td>${s.source==='manual'?'<span class="badge b-orange">manual</span>':'<span class="badge b-green">detected</span>'}</td></tr>`).join('');
+  const simOpts=sims.filter(s=>s.subscriptionId!=null).map(s=>`<option value="${s.subscriptionId}|${s.slotIndex??''}" ${r.mode==='sim'&&r.subscriptionId===s.subscriptionId?'selected':''}>Always use — Slot ${s.slotIndex??'?'} (${esc(s.carrierName||s.displayName||'SIM')})</option>`).join('');
+  return `<div class="page-head"><div><h2>SIM Cards</h2><p>SIM cards reported by your devices and default routing</p></div></div>
+  <div class="card section"><div class="card-header"><span class="card-title">Device</span></div><div class="card-pad">
+    <select class="select" onchange="store.selDevice=this.value;simDirty=false;renderSection()">${opts||'<option>No devices</option>'}</select>
+  </div></div>
+  <div class="card section"><div class="card-header"><span class="card-title">Available SIM Cards</span><span class="muted" style="font-size:13px">${dev?(dev.online?'● online':'○ offline'):''}</span></div><div class="card-pad">
+    ${sims.length?`<div class="table-wrap"><table class="table"><thead><tr><th>Slot</th><th>Carrier</th><th>Name</th><th>Number</th><th>Subscription ID</th><th>Source</th></tr></thead><tbody>${simRows}</tbody></table></div>`:`<div class="empty">${ICONS.sim}<div>No SIM cards reported yet. Connect the Android app — SIMs are reported on connect and every heartbeat (30s). You can also register SIMs manually in the Android app's SIM Cards tab.</div></div>`}
+  </div></div>
+  <div class="card section"><div class="card-header"><span class="card-title">Default SIM Routing</span></div><div class="card-pad">
+    <p class="hint mb8">Applied to API sends that don't specify a SIM, and used as the default in Messaging. The per-send SIM choice in Messaging overrides this.</p>
+    <div class="field"><label>Routing mode</label>
+      <select class="select" id="simMode" onchange="simDirty=true">
+        <option value="any" ${(!r.mode||r.mode==='any')?'selected':''}>Phone default — let the phone pick a SIM</option>
+        ${simOpts}
+        <option value="roundrobin" ${r.mode==='roundrobin'?'selected':''}>Round-robin — alternate across all SIMs (great for API sends)</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="saveSimRouting()">${ICONS.key} Save routing</button>
+  </div></div>`;
+}
+async function saveSimRouting(){
+  const v=$('#simMode').value;
+  let simRouting={mode:'any'};
+  if(v==='roundrobin')simRouting={mode:'roundrobin'};
+  else if(v.includes('|')){const p=v.split('|');simRouting={mode:'sim',subscriptionId:Number(p[0]),slotIndex:p[1]===''?null:Number(p[1])}}
+  try{await api(`/gateway/devices/${store.selDevice}`,{method:'PATCH',body:{simRouting}});toast('SIM routing saved');simDirty=false;await loadDevices();renderSection()}
+  catch(e){toast(e.message,true)}
+}
+function simOptions(dev){
+  const sims=(dev&&dev.simInfo&&Array.isArray(dev.simInfo.sims))?dev.simInfo.sims:[];
+  const r=(dev&&dev.simRouting)||{};
+  let def='Device default (phone picks SIM)';
+  if(r.mode==='roundrobin')def='Device default (round-robin all SIMs)';
+  else if(r.mode==='sim')def='Device default ('+(sims.find(s=>s.subscriptionId===r.subscriptionId)?.carrierName||'configured SIM')+')';
+  let out=`<option value="">${esc(def)}</option>`;
+  for(const s of sims)if(s.subscriptionId!=null)out+=`<option value="${s.subscriptionId}|${s.slotIndex??''}">Slot ${s.slotIndex??'?'} — ${esc(s.carrierName||s.displayName||'SIM')}</option>`;
+  return out;
 }
 function webhooksHtml(){return `<div class="page-head"><div><h2>Webhooks</h2><p>Get notified at your endpoints when SMS events happen</p></div></div>
   <div class="card card-pad empty">${ICONS.webhook}<div style="margin-top:8px">Webhooks are coming soon. This is where you'll configure URLs to receive <code>sms.sent</code>, <code>sms.delivered</code>, and <code>sms.received</code> events.</div></div>`}
@@ -342,8 +391,11 @@ async function sendSms(){const r=$('#recip').value,msg=$('#msg').value;
   const recipients=r.split(/[\n,]/).map(x=>x.trim()).filter(Boolean);
   if(!store.selDevice)return toast('Select a device first',true);
   if(!recipients.length||!msg)return toast('Add recipients and a message',true);
+  const body={recipients,message:msg};
+  const simSel=$('#selSim')?$('#selSim').value:'';
+  if(simSel){const p=simSel.split('|');body.simSubscriptionId=Number(p[0]);body.simSlotIndex=p[1]===''?null:Number(p[1])}
   $('#sendBtn').disabled=true;
-  try{const res=await api(`/gateway/devices/${store.selDevice}/send-sms`,{method:'POST',body:{recipients,message:msg}});toast(`Sent to ${res.data.count} recipient(s)`);$('#recip').value='';$('#msg').value='';$('#cnt').textContent='0 / 160';await refreshHistory();await loadStats()}
+  try{const res=await api(`/gateway/devices/${store.selDevice}/send-sms`,{method:'POST',body});toast(`Sent to ${res.data.count} recipient(s)`);$('#recip').value='';$('#msg').value='';$('#cnt').textContent='0 / 160';await refreshHistory();await loadStats()}
   catch(e){toast(e.message,true)}finally{$('#sendBtn').disabled=false}
 }
 async function delDevice(id){if(!confirm('Delete this device?'))return;try{await api(`/gateway/devices/${id}`,{method:'DELETE'});toast('Device deleted');await loadDevices();renderSection()}catch(e){toast(e.message,true)}}
@@ -354,7 +406,14 @@ async function rotateKey(){try{const r=await api('/api/auth/api-key',{method:'PO
 let pollT=null;
 function startLive(){if(window._sock)return;try{window._sock=io();window._sock.on('change',refresh)}catch{}
 pollT=setInterval(refresh,5000)}
-async function refresh(){await loadStats();if(store.section==='dashboard'||store.section==='messaging'){const cur=store.section;renderSection()}}
+async function refresh(){
+  await loadStats();
+  await loadDevices();
+  if(store.section==='dashboard'){renderSection();return}
+  if(store.section==='simcards'&&!simDirty){renderSection();return}
+  if(store.section!=='messaging')return;
+  refreshHistory();
+}
 
 /* ---- boot ---- */
 function enterApp(){
