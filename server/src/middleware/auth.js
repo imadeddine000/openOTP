@@ -1,45 +1,56 @@
 /**
- * Simple API-key authentication middleware.
- *
- * The server reads the key from the API_KEY environment variable.
- * If API_KEY is not set, auth is disabled (open mode — useful for dev).
- *
- * REST:   clients send  Authorization: Bearer <key>
- * Socket: clients send  { auth: { key: "<key>" } } in the handshake
+ * Auth middleware for openOTP SaaS.
+ * - Dashboard users authenticate with a signed Bearer token (issued at login).
+ * - Devices / gateway clients authenticate with an x-api-key header.
+ * Tokens are HMAC-SHA256 signed JSON (no external jwt dep).
  */
+const crypto = require('crypto');
+const store = require('../services/store');
 
-const API_KEY = process.env.API_KEY || null;
+const SECRET = process.env.JWT_SECRET || 'openotp-dev-secret-change-me';
 
-/**
- * Express middleware — protects REST API routes.
- * Skips auth when API_KEY is not configured.
- */
-function restAuth(req, res, next) {
-  if (!API_KEY) return next(); // open mode
-
-  const authHeader = req.headers.authorization || '';
-  const token = authHeader.startsWith('Bearer ')
-    ? authHeader.slice(7)
-    : null;
-
-  if (token === API_KEY) return next();
-
-  return res.status(401).json({ error: 'Unauthorized: invalid or missing API key' });
+function signToken(userId, ttlMs = 7 * 24 * 3600 * 1000) {
+  const payload = Buffer.from(JSON.stringify({ uid: userId, exp: Date.now() + ttlMs })).toString('base64url');
+  const sig = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  return payload + '.' + sig;
 }
 
-/**
- * Socket.io middleware — protects WebSocket connections.
- * Skips auth when API_KEY is not configured.
- * Devices must pass { auth: { key: "..." } } when connecting.
- */
-function socketAuth(socket, next) {
-  if (!API_KEY) return next(); // open mode
-
-  const key = (socket.handshake.auth && socket.handshake.auth.key) || null;
-  if (key === API_KEY) return next();
-
-  console.log(`[AUTH] Socket ${socket.id} rejected — invalid API key`);
-  return next(new Error('Unauthorized: invalid or missing API key'));
+function verifyToken(token) {
+  if (!token || !token.includes('.')) return null;
+  const [payload, sig] = token.split('.');
+  const expected = crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
+  if (sig !== expected) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (data.exp < Date.now()) return null;
+    return data;
+  } catch {
+    return null;
+  }
 }
 
-module.exports = { restAuth, socketAuth, isAuthEnabled: () => !!API_KEY };
+/** Bearer token auth for dashboard users. */
+function authUser(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const data = verifyToken(token);
+  if (!data) return res.status(401).json({ error: 'Unauthorized' });
+  const user = store.findUserById(data.uid);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  req.user = user;
+  next();
+}
+
+/** Gateway auth: x-api-key header OR Bearer token. */
+function authGateway(req, res, next) {
+  const apiKey = req.headers['x-api-key'];
+  if (apiKey) {
+    const user = store.findUserByApiKey(apiKey);
+    if (!user) return res.status(401).json({ error: 'Invalid API key' });
+    req.user = user;
+    return next();
+  }
+  return authUser(req, res, next);
+}
+
+module.exports = { signToken, verifyToken, authUser, authGateway };
