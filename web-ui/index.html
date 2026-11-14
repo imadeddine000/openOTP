@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTP System Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+    .header { background: #1a73e8; color: #fff; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 20px; }
+    .connection-status { font-size: 14px; opacity: 0.9; }
+    .container { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .stat-card .label { font-size: 12px; text-transform: uppercase; color: #888; margin-bottom: 4px; }
+    .stat-card .value { font-size: 28px; font-weight: 700; }
+    .stat-card.queued .value { color: #f5a623; }
+    .stat-card.dispatched .value { color: #1a73e8; }
+    .stat-card.sent .value { color: #34a853; }
+    .stat-card.failed .value { color: #ea4335; }
+    .panel { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
+    .panel h2 { font-size: 16px; margin-bottom: 16px; }
+    .form-row { display: flex; gap: 12px; margin-bottom: 12px; }
+    .form-row input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+    .form-row input:focus { outline: none; border-color: #1a73e8; }
+    button { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; background: #1a73e8; color: #fff; }
+    button:hover { background: #1557b0; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px; border-bottom: 2px solid #eee; color: #888; font-weight: 600; }
+    td { padding: 8px; border-bottom: 1px solid #f0f0f0; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge.queued { background: #fff3cd; color: #856404; }
+    .badge.dispatched { background: #d1ecf1; color: #0c5460; }
+    .badge.sent { background: #d4edda; color: #155724; }
+    .badge.failed { background: #f8d7da; color: #721c24; }
+    .badge.idle { background: #d4edda; color: #155724; }
+    .badge.busy { background: #fff3cd; color: #856404; }
+    .badge.offline { background: #f8d7da; color: #721c24; }
+    .empty { text-align: center; padding: 24px; color: #999; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .dot.online { background: #34a853; box-shadow: 0 0 4px #34a853; }
+    .dot.offline { background: #ea4335; }
+    .dot.busy { background: #f5a623; }
+    .heartbeat-time { color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📱 OTP System Dashboard</h1>
+    <div class="connection-status" id="connStatus">Connecting…</div>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card queued"><div class="label">Queued</div><div class="value" id="statQueued">0</div></div>
+      <div class="stat-card dispatched"><div class="label">Dispatched</div><div class="value" id="statDispatched">0</div></div>
+      <div class="stat-card sent"><div class="label">Sent</div><div class="value" id="statSent">0</div></div>
+      <div class="stat-card failed"><div class="label">Failed</div><div class="value" id="statFailed">0</div></div>
+      <div class="stat-card"><div class="label">Devices Online</div><div class="value" id="statDevicesOnline" style="color:#34a853">0</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Send OTP Request</h2>
+      <form id="otpForm">
+        <div class="form-row">
+          <input type="text" id="phone" placeholder="Phone number (e.g. +1234567890)" required>
+          <input type="text" id="message" placeholder="OTP message (e.g. Your code is 123456)" required>
+          <button type="submit">Submit</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Heartbeat Configuration</h2>
+      <form id="heartbeatForm">
+        <div class="form-row">
+          <input type="number" id="heartbeatInterval" placeholder="Interval (ms), e.g. 15000" min="5000" max="120000" step="1000" value="15000" required>
+          <input type="text" id="heartbeatTarget" placeholder="Device ID or * for all" value="*">
+          <button type="submit">Apply</button>
+        </div>
+        <small style="color:#888">Range: 5000–120000 ms. Use * to broadcast to all devices.</small>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Connected Devices</h2>
+      <div id="devicesTable"><div class="empty">No devices connected</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Recent Requests</h2>
+      <div id="requestsTable"><div class="empty">No requests yet</div></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const API_BASE = window.location.origin.replace(/:\d+$/, ':3000');
+    let socket = null;
+
+    // --- Socket.io connection ---
+    function connectSocket() {
+      socket = io(API_BASE, { transports: ['websocket', 'polling'] });
+
+      socket.on('connect', () => {
+        document.getElementById('connStatus').textContent = '● Connected';
+        document.getElementById('connStatus').style.color = '#4caf50';
+      });
+
+      socket.on('disconnect', () => {
+        document.getElementById('connStatus').textContent = '● Disconnected';
+        document.getElementById('connStatus').style.color = '#f44336';
+      });
+
+      socket.on('stats', (stats) => {
+        renderStats(stats);
+        renderDevices(stats.connectedDevices || []);
+        renderRequests(stats.recentRequests || []);
+      });
+    }
+
+    // --- REST form submission ---
+    document.getElementById('otpForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const btn = e.target.querySelector('button');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      try {
+        const res = await fetch(`${API_BASE}/api/otp/request`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, message })
+        });
+        const data = await res.json();
+        if (!data.success) alert('Error: ' + (data.error || 'Unknown'));
+        else { document.getElementById('message').value = ''; }
+      } catch (err) { alert('Request failed: ' + err.message); }
+      btn.disabled = false; btn.textContent = 'Submit';
+    });
+
+    // --- Heartbeat config form ---
+    document.getElementById('heartbeatForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const interval = parseInt(document.getElementById('heartbeatInterval').value, 10);
+      const target = document.getElementById('heartbeatTarget').value.trim() || '*';
+      const btn = e.target.querySelector('button');
+      btn.disabled = true; btn.textContent = 'Applying…';
+      try {
+        const res = await fetch(`${API_BASE}/api/otp/heartbeat-config`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ interval, target })
+        });
+        const data = await res.json();
+        if (!data.success) alert('Error: ' + (data.error || 'Unknown'));
+        else alert(`Heartbeat set to ${interval}ms for ${target}`);
+      } catch (err) { alert('Request failed: ' + err.message); }
+      btn.disabled = false; btn.textContent = 'Apply';
+    });
+
+    // --- Renderers ---
+    function renderStats(s) {
+      document.getElementById('statQueued').textContent = s.queueLength ?? 0;
+      document.getElementById('statDispatched').textContent = s.dispatchedCount ?? 0;
+      document.getElementById('statSent').textContent = s.sentCount ?? 0;
+      document.getElementById('statFailed').textContent = s.failedCount ?? 0;
+      const onlineCount = (s.connectedDevices || []).filter(d => d.isOnline).length;
+      document.getElementById('statDevicesOnline').textContent = onlineCount;
+    }
+
+    function renderDevices(devices) {
+      const el = document.getElementById('devicesTable');
+      if (!devices || devices.length === 0) { el.innerHTML = '<div class="empty">No devices connected</div>'; return; }
+      let html = '<table><tr><th></th><th>Device ID</th><th>Model</th><th>Status</th><th>Last Heartbeat</th></tr>';
+      devices.forEach(d => {
+        const isOnline = d.isOnline !== false && d.status !== 'offline';
+        const dotCls = isOnline ? (d.status === 'busy' ? 'busy' : 'online') : 'offline';
+        const badgeCls = d.status || 'idle';
+        const hbTime = d.lastHeartbeat ? new Date(d.lastHeartbeat).toLocaleTimeString() : '—';
+        const hbAgo = d.lastHeartbeat ? timeAgo(d.lastHeartbeat) : '';
+        html += `<tr>
+          <td><span class="dot ${dotCls}"></span></td>
+          <td>${d.id}</td>
+          <td>${d.model || '—'}</td>
+          <td><span class="badge ${badgeCls}">${d.status}</span></td>
+          <td><span class="heartbeat-time">${hbTime} ${hbAgo}</span></td>
+        </tr>`;
+      });
+      html += '</table>';
+      el.innerHTML = html;
+    }
+
+    function timeAgo(iso) {
+      const diff = Date.now() - new Date(iso).getTime();
+      const s = Math.floor(diff / 1000);
+      if (s < 60) return `(${s}s ago)`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `(${m}m ago)`;
+      return `(${Math.floor(m / 60)}h ago)`;
+    }
+
+    function renderRequests(reqs) {
+      const el = document.getElementById('requestsTable');
+      const existing = el.dataset.requests ? JSON.parse(el.dataset.requests) : [];
+      reqs.forEach(r => {
+        const idx = existing.findIndex(e => e.id === r.id);
+        if (idx >= 0) existing[idx] = r; else existing.unshift(r);
+      });
+      const top = existing.slice(0, 20);
+      el.dataset.requests = JSON.stringify(top);
+      if (top.length === 0) { el.innerHTML = '<div class="empty">No requests yet</div>'; return; }
+      let html = '<table><tr><th>ID</th><th>Phone</th><th>Message</th><th>Status</th><th>Retry</th><th>Device</th><th>Time</th></tr>';
+      top.forEach(r => {
+        const cls = r.status || 'queued';
+        const dev = r.deviceId || '—';
+        const t = r.createdAt ? new Date(r.createdAt).toLocaleTimeString() : '—';
+        const retry = r.retryCount != null ? r.retryCount : 0;
+        html += `<tr><td>${r.id.slice(0,8)}</td><td>${r.phone}</td><td>${r.message}</td><td><span class="badge ${cls}">${cls}</span></td><td>${retry}</td><td>${dev}</td><td>${t}</td></tr>`;
+      });
+      html += '</table>';
+      el.innerHTML = html;
+    }
+
+    // --- Initial load ---
+    connectSocket();
+    fetch(`${API_BASE}/api/otp/requests`).then(r => r.json()).then(d => {
+      if (d.success) renderRequests(d.requests);
+    }).catch(() => {});
+  </script>
+</body>
+</html>
