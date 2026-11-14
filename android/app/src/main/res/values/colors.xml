@@ -1,0 +1,18 @@
+<resources>
+    <color name="bg">#FAF7F0</color>
+    <color name="card">#FFFFFF</color>
+    <color name="border">#E8E2D4</color>
+    <color name="text">#1C1A17</color>
+    <color name="textMuted">#6B655B</color>
+    <color name="textFaint">#A8A480</color>
+    <color name="primary">#EA580C</color>
+    <color name="primaryDark">#C2410C</color>
+    <color name="btnPrimaryText">#FFFFFF</color>
+    <color name="logBg">#F3EDE1</color>
+    <color name="chipGreenBg">#2616A34A</color>
+    <color name="chipGreenText">#15803D</color>
+    <color name="chipOrangeBg">#26EA580C</color>
+    <color name="chipOrangeText">#C2410C</color>
+    <color name="chipRedBg">#26DC2626</color>
+    <color name="chipRedText">#B91C1C</color>
+</resources>
