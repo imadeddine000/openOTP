@@ -175,3 +175,49 @@ Install on device → enter server IP → grant SMS permission → tap Connect.
 - [ ] Add detailed logging/audit trail
 - [ ] Add Prometheus metrics endpoint
 - [ ] Add Docker containerization
+
+---
+
+## Phase 15: textbee-style SMS Gateway SaaS Rewrite ✅
+
+Rewrote openOTP to work like [textbee](https://github.com/textbee/textbee) — an open-source Android SMS gateway — but as a SaaS, using the existing stack (Express + vanilla web UI + Java Android) so it runs immediately.
+
+### Architecture (now mirrors textbee's pull-based REST model)
+```
+┌──────────────┐    REST (x-api-key)   ┌───────────────┐   poll/claim (REST)   ┌──────────────┐
+│  Web Dashboard│ ───────────────────▶ │   Server      │ ◀──────────────────▶ │  Android     │
+│  (SaaS UI)    │   Bearer token       │  (Express)    │   send-sms / status   │  SMS Gateway │
+│  login/stats  │ ◀─────────────────── │  JSON store   │ ◀──────────────────▶ │  (SmsManager)│
+└──────────────┘   socket.io 'change'  └───────────────┘   receive-sms         └──────────────┘
+```
+
+### Server (Express, no new deps — Node crypto + uuid)
+60. Added `src/services/store.js` — JSON-file-backed store (users, devices, sms messages, sms batches) with scrypt password hashing + HMAC tokens
+61. Rewrote `src/middleware/auth.js` — signed Bearer tokens (dashboard) + `x-api-key` header (devices)
+62. Added `src/routes/auth.js` — `POST /api/auth/register|login`, `GET /api/auth/me`, `POST /api/auth/api-key`
+63. Added `src/routes/gateway.js` — full `/gateway/*` API mirroring textbee: stats, devices, send-sms, send-bulk-sms, receive-sms, sms-status, heartbeat, messages/pending, messages/claim, sms history, batches
+64. Added `src/socket/live.js` — lightweight `change` ping so the dashboard re-fetches
+65. Removed old OTP dispatch files (otp routes, queue, deviceHandler, e2e/heartbeat tests)
+
+### Web UI (vanilla HTML/CSS/JS SaaS dashboard)
+66. Rewrote `web-ui/index.html` — login/register → dashboard: stats cards, devices table (online dots), send-SMS panel, message history, API key panel with rotate; live updates via socket.io + polling
+
+### Android (Java — switched from Socket.io to textbee's pull-based REST)
+67. Added `GatewayClient.java` — HttpURLConnection REST client (register, claim, sms-status, receive-sms, heartbeat)
+68. Added `SmsPollService.java` — foreground service: claim pending → SmsManager send → report status → heartbeat every 30s
+69. Added `SmsReceiver.java` — forwards incoming SMS to server; `SmsStatusReceiver.java` — reports sent/delivered callbacks
+70. Rewrote `MainActivity.java` — API-key onboarding → register device → start/stop gateway service
+71. Updated manifest (RECEIVE_SMS, READ_PHONE_STATE, SmsReceiver/SmsStatusReceiver/SmsPollService), layout, strings; removed socket.io/okhttp deps; deleted old DeviceService
+72. **BUILD SUCCESSFUL** — `app-debug.apk` (3.0 MB)
+
+### Verified end-to-end
+Register → login → register device (x-api-key) → send-sms → claim (pull) → sms-status → receive-sms → heartbeat → stats — all passing.
+
+## Next Steps / TODO (redesign phase)
+- [ ] Redesign system/work logic (per user plan)
+- [ ] Add webhooks (textbee has webhook subscriptions + delivery events)
+- [ ] Add multi-SIM support (simSubscriptionId / simSlotIndex selection)
+- [ ] Add request rate limiting + per-user quotas (SaaS billing tiers)
+- [ ] Add persistent DB (Mongo/Postgres) to replace JSON file store
+- [ ] Add FCM push to wake the Android poller (textbee uses FCM)
+- [ ] Add API key scopes + dashboard user management
