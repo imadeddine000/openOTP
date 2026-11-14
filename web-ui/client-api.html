@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>openOTP â€” Client API Docs</title>
+<title>openOTP — Client API Docs</title>
 <style>
   :root { --bg:#0f1115; --card:#171a21; --border:#262b36; --text:#e6e8ec; --muted:#8b94a5; --accent:#ff7a18; --green:#22c55e; --red:#ef4444; --code:#1e222b; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,9 +32,9 @@
 </style>
 </head>
 <body>
-<header><h1>openOTP Client API</h1><span class="tag">v1</span><span style="color:var(--muted);margin-left:auto;font-size:13px"><a href="/">â† Dashboard</a></span></header>
+<header><h1>openOTP Client API</h1><span class="tag">v1</span><span style="color:var(--muted);margin-left:auto;font-size:13px"><a href="/">← Dashboard</a></span></header>
 <div class="wrap">
-<p class="lead">Send OTP & SMS from your app through openOTP. Authenticate with your <code>x-api-key</code> header (the <code>sk_â€¦</code> key from the dashboard). The server auto-routes each message to one of your online Android gateway devices â€” you never deal with devices directly.</p>
+<p class="lead">Send OTP & SMS from your app through openOTP. Authenticate with your <code>x-api-key</code> header (the <code>sk_…</code> key from the dashboard). The server auto-routes each message to one of your online Android gateway devices — you never deal with devices directly.</p>
 
 <div class="endpoint open"><div class="head"><span class="method m-get">GET</span><span class="path">/api/v1/health</span><span class="desc">Public health check</span></div>
 <div class="body"><p>Verify the service is reachable. No auth required.</p>
@@ -67,7 +67,7 @@
 <div class="body"><p>Batch send. Accepts <code>{ messages: [{ to, message }] }</code> or <code>{ recipients: ["+1...","+2..."], message: "..." }</code>.</p></div></div>
 
 <div class="endpoint"><div class="head"><span class="method m-get">GET</span><span class="path">/api/v1/messages/:id</span><span class="desc">Get message status</span></div>
-<div class="body"><p>Poll a message by its <code>id</code> to check delivery status (<code>pending â†’ dispatched â†’ sent â†’ delivered</code> or <code>failed</code>).</p></div></div>
+<div class="body"><p>Poll a message by its <code>id</code> to check delivery status (<code>pending → dispatched → sent → delivered</code> or <code>failed</code>).</p></div></div>
 
 <div class="endpoint"><div class="head"><span class="method m-get">GET</span><span class="path">/api/v1/messages</span><span class="desc">List messages</span></div>
 <div class="body"><p>Paginated list. Query params: <code>?page=1&limit=50&status=pending&deviceId=...</code></p></div></div>
@@ -96,7 +96,7 @@ async function trySend() {
   const msg = document.getElementById('m1').value.trim();
   const out = document.getElementById('r1');
   if (!key) { out.innerHTML = '<err>Enter your API key first</err>'; return; }
-  out.innerHTML = 'Sendingâ€¦';
+  out.innerHTML = 'Sending…';
   try {
     const res = await fetch('/api/v1/messages', {
       method: 'POST',
@@ -104,11 +104,11 @@ async function trySend() {
       body: JSON.stringify({ to, message: msg }),
     });
     const json = await res.json();
-    if (res.ok) out.innerHTML = '<ok>âœ“ Sent!</ok> id=' + json.data.id + ' status=' + json.data.status + ' device=' + json.data.deviceId;
+    if (res.ok) out.innerHTML = '<ok>✓ Sent!</ok> id=' + json.data.id + ' status=' + json.data.status + ' device=' + json.data.deviceId;
     else out.innerHTML = '<err>' + res.status + ' ' + (json.error || '') + '</err>';
   } catch (e) { out.innerHTML = '<err>' + e.message + '</err>'; }
 }
 </script>
-<footer>openOTP Client API v1 Â· <a href="/">Dashboard</a> Â· Authenticate with <code>x-api-key</code> header</footer>
+<footer>openOTP Client API v1 · <a href="/">Dashboard</a> · Authenticate with <code>x-api-key</code> header</footer>
 </body>
 </html>

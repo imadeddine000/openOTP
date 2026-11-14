@@ -15,6 +15,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('[openOTP] SMS Gateway SaaS running on http://0.0.0.0:' + PORT);
   console.log('> Auth:     /api/auth/register, /api/auth/login');
   console.log('> Client:   /api/v1/* (x-api-key)');
+  console.log('> Admin:    /api/admin/* (Bearer + admin role)');
   console.log('> Gateway:  /gateway/*');
   console.log('> Dashboard: http://localhost:' + PORT);
 });

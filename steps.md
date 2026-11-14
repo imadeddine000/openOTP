@@ -221,3 +221,39 @@ Register → login → register device (x-api-key) → send-sms → claim (pull)
 - [ ] Add persistent DB (Mongo/Postgres) to replace JSON file store
 - [ ] Add FCM push to wake the Android poller (textbee uses FCM)
 - [ ] Add API key scopes + dashboard user management
+
+---
+
+## Phase 16: Product-Grade Landing + Sidebar Portals + Admin Data Tables ✅
+
+### Landing page (single CTA → Client Portal)
+73. Rewrote `frontend/src/App.jsx` — full marketing landing: sticky nav, hero with gradient headline + "Start Sending Free →" CTA to the Client Portal, terminal-style curl code sample, 6-feature grid, 3-step "how it works", CTA banner, footer (admin access reduced to a discreet footer link — the public page no longer advertises two portals)
+74. Added landing + sidebar CSS (`.lhero`, `.feat-grid`, `.shell`, `.sidenav`, responsive breakpoints) to `frontend/index.html`
+
+### Client Portal (sidebar, message-centric — devices hidden)
+75. Rewrote `frontend/src/client/ClientApp.jsx` with sidebar navigation: **Dashboard / Messages / Send SMS / API Keys / Integration**
+76. Dashboard shows only what a client cares about: Sent / Delivered / Failed / Pending stat cards, delivery-rate progress bar, recent messages table (device counts removed)
+77. Messages page: Sent/Received tabs, status filter, detail modal, pagination, CSV export (all pages fetched)
+78. New Send SMS page — test-send via the same `/api/v1/messages` endpoint apps use
+79. Integration page: credentials, copyable cURL/JavaScript/Python examples, endpoint reference
+
+### Admin Portal (sidebar, everything in tables + statistics)
+80. Rewrote `frontend/src/admin/AdminApp.jsx` with sidebar navigation: **Overview / Users / Devices / Messages / Batches**
+81. Overview: 10 stat cards + donut chart (status mix) + grouped bar chart (14-day traffic) + top-users table (zero-dependency SVG/CSS charts in `ui.jsx`)
+82. Users table: full CRUD via modals (create, edit email/role/enabled, reset password, delete), search, **CSV/JSON export**, **CSV/JSON import** with duplicate skipping + per-row errors
+83. Devices table: global list with owner email, online/enabled toggles, edit modal (name, enable, SIM routing: any/roundrobin/fixed), delete, CSV/JSON export
+84. Messages table: type/status filters, text search, detail modal, delete, paginated, CSV export
+85. Batches table: paginated, CSV export
+
+### Server (new admin/table APIs)
+86. `store.js`: `getAllDevices`, `getAllMessages` (filters + search + owner/device enrichment), `getAllBatches`, `deleteMessage`, `importUsers` (bulk, dedupe), `getAnalytics` (status mix, 14-day per-day traffic, top users); `updateUser` now supports email rename (uniqueness-checked), password reset; `getMessagesByUser` accepts `type` (sent|received)
+87. `routes/admin.js`: `GET /analytics`, `GET|PATCH|DELETE /devices`, `GET|DELETE /messages`, `GET /batches`, `POST /users/import`; stats now include `received`
+88. `routes/client.js`: `GET /api/v1/messages?type=received` for the client portal's Received tab
+89. New shared UI kit in `ui.jsx`: Shell (sidebar), Modal, Notice, Pagination, SearchBox, Select, StatusBadge, DetailRows, BarChart, DonutChart, toCSV/downloadFile/parseCSV/csvToObjects/fetchAllPages, ImportDialog
+90. New utility `server/create-admin.js` — create/promote an admin from the CLI
+
+### Verified end-to-end (server on :3001)
+- `e2e-test.js` — **23 passed** (regression, gateway flow unchanged)
+- `sim-e2e.js` — **13 passed** (regression, SIM routing unchanged)
+- `admin-e2e.js` (new) — **25 passed**: admin auth/403 guard, stats+received, analytics shape, user CRUD + password reset + duplicate-email 400, bulk import (created/skipped/errors), device list/patch/delete, message log enrichment + filters + search + delete, batches, client `type=received` filter
+- Frontend rebuilt (`vite build`, 38 modules) and served by the Express server; landing CTA verified in the served bundle

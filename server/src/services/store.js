@@ -1,7 +1,7 @@
 /**
  * JSON-file-backed data store for the openOTP SMS gateway SaaS.
  * Mirrors textbee's data model: users, devices, sms messages, sms batches.
- * No external deps â€” uses Node crypto for hashing and uuid for ids.
+ * No external deps — uses Node crypto for hashing and uuid for ids.
  */
 const fs = require('fs');
 const path = require('path');
@@ -40,6 +40,7 @@ function save() {
 }
 
 load();
+ensureAdminBootstrap();
 
 // ---------------- crypto helpers ----------------
 function hashPassword(password, salt) {
@@ -63,15 +64,25 @@ function newId() {
 }
 
 // ---------------- users ----------------
-function createUser({ email, password }) {
+/** If no admin exists, promote the earliest user so the business owner keeps access. */
+function ensureAdminBootstrap() {
+  const users = Object.values(state.users).sort((a, b) => a.createdAt - b.createdAt);
+  if (!users.some((u) => u.role === 'admin') && users.length) { users[0].role = 'admin'; save(); }
+}
+function createUser({ email, password, role }) {
   const lower = String(email || '').trim().toLowerCase();
   if (!lower || !password) throw new Error('Email and password are required');
-  if (Object.values(state.users).some((u) => u.email === lower)) {
-    throw new Error('Email is already registered');
-  }
+  if (Object.values(state.users).some((u) => u.email === lower)) throw new Error('Email is already registered');
   const { salt, hash } = hashPassword(password);
   const id = newId();
-  const user = { id, email: lower, salt, hash, apiKey: newApiKey(), createdAt: Date.now() };
+  const user = {
+    id, email: lower, salt, hash,
+    role: role || (Object.values(state.users).some((u) => u.role === 'admin') ? 'client' : 'admin'),
+    apiKey: newApiKey(),           // legacy primary key (devices/gateway)
+    apiKeys: [],                   // client-managed keys for /api/v1
+    enabled: true,
+    createdAt: Date.now(),
+  };
   state.users[id] = user;
   save();
   return user;
@@ -81,20 +92,61 @@ function findUserByEmail(email) {
   return Object.values(state.users).find((u) => u.email === lower) || null;
 }
 function findUserByApiKey(key) {
-  return Object.values(state.users).find((u) => u.apiKey === key) || null;
+  return Object.values(state.users).find((u) =>
+    u.apiKey === key || (Array.isArray(u.apiKeys) && u.apiKeys.some((k) => k.key === key))) || null;
 }
-function findUserById(id) {
-  return state.users[id] || null;
-}
+function findUserById(id) { return state.users[id] || null; }
 function rotateApiKey(id) {
-  const u = state.users[id];
-  if (!u) return null;
-  u.apiKey = newApiKey();
-  save();
-  return u;
+  const u = state.users[id]; if (!u) return null;
+  u.apiKey = newApiKey(); save(); return u;
+}
+/* ---- client API keys (multiple per user) ---- */
+function listApiKeys(userId) {
+  const u = state.users[userId];
+  return (u && Array.isArray(u.apiKeys)) ? u.apiKeys.map((k) => ({ ...k })) : [];
+}
+function createApiKey(userId, label) {
+  const u = state.users[userId]; if (!u) return null;
+  if (!Array.isArray(u.apiKeys)) u.apiKeys = [];
+  const entry = { id: newId(), key: newApiKey(), label: label || 'Default', createdAt: Date.now(), lastUsedAt: null };
+  u.apiKeys.push(entry); save(); return entry;
+}
+function revokeApiKey(userId, keyId) {
+  const u = state.users[userId]; if (!u || !Array.isArray(u.apiKeys)) return false;
+  const before = u.apiKeys.length;
+  u.apiKeys = u.apiKeys.filter((k) => k.id !== keyId);
+  if (u.apiKeys.length !== before) { save(); return true; } return false;
+}
+/* ---- user management (admin) ---- */
+function getAllUsers() { return Object.values(state.users).map(publicUser); }
+function updateUser(id, patch = {}) {
+  const u = state.users[id]; if (!u) return null;
+  if (patch.email != null) {
+    const lower = String(patch.email).trim().toLowerCase();
+    if (!lower) throw new Error('Email cannot be empty');
+    if (Object.values(state.users).some((x) => x.id !== id && x.email === lower)) throw new Error('Email is already registered');
+    u.email = lower;
+  }
+  if (patch.password) {
+    const { salt, hash } = hashPassword(patch.password);
+    u.salt = salt; u.hash = hash;
+  }
+  for (const k of ['role', 'enabled']) if (k in patch) u[k] = patch[k];
+  save(); return u;
+}
+function deleteUser(id) {
+  if (!state.users[id]) return false;
+  delete state.users[id];
+  for (const d of Object.values(state.devices)) if (d.user === id) delete state.devices[d.id];
+  for (const m of Object.values(state.messages)) if (m.user === id) delete state.messages[m.id];
+  for (const b of Object.values(state.batches)) if (b.user === id) delete state.batches[b.id];
+  save(); return true;
 }
 function publicUser(u) {
-  return { id: u.id, email: u.email, apiKey: u.apiKey, createdAt: u.createdAt };
+  return {
+    id: u.id, email: u.email, role: u.role || 'client', enabled: u.enabled !== false,
+    apiKey: u.apiKey, apiKeys: (u.apiKeys || []).map((k) => ({ ...k })), createdAt: u.createdAt,
+  };
 }
 
 // ---------------- devices ----------------
@@ -286,9 +338,10 @@ function pickDeviceForUser(userId) {
   online.sort((a, b) => (b.lastSeenAt || 0) - (a.lastSeenAt || 0));
   return online[0];
 }
-/** Paginated list of a user's sent messages, optionally filtered by status/device. */
+/** Paginated list of a user's messages, optionally filtered by type/status/device. */
 function getMessagesByUser(userId, opts = {}) {
-  let list = Object.values(state.messages).filter((m) => m.user === userId && m.type === 'sent');
+  const type = opts.type === 'all' ? null : (opts.type || 'sent');
+  let list = Object.values(state.messages).filter((m) => m.user === userId && (type ? m.type === type : true));
   if (opts.status) list = list.filter((m) => m.status === opts.status);
   if (opts.deviceId) list = list.filter((m) => m.device === opts.deviceId);
   list.sort((a, b) => b.createdAt - a.createdAt);
@@ -296,6 +349,107 @@ function getMessagesByUser(userId, opts = {}) {
   const limit = Math.min(opts.limit || 50, 100);
   const start = (page - 1) * limit;
   return { data: list.slice(start, start + limit), total: list.length, page, limit };
+}
+
+// ---------------- admin: global listings ----------------
+/** All devices across all users, newest-seen first, tagged with owner email. */
+function getAllDevices() {
+  return Object.values(state.devices)
+    .sort((a, b) => (b.lastSeenAt || 0) - (a.lastSeenAt || 0))
+    .map((d) => ({ ...publicDevice(d), userEmail: (state.users[d.user] || {}).email || null }));
+}
+/** Enrich a message with owner email + device name for admin tables. */
+function enrichMessage(m) {
+  const d = state.devices[m.device] || {};
+  return { ...m, userEmail: (state.users[m.user] || {}).email || null, deviceName: d.name || d.model || null };
+}
+/** Paginated list of ALL messages with optional filters + search (admin). */
+function getAllMessages(opts = {}) {
+  let list = Object.values(state.messages);
+  if (opts.type) list = list.filter((m) => m.type === opts.type);
+  if (opts.status) list = list.filter((m) => m.status === opts.status);
+  if (opts.userId) list = list.filter((m) => m.user === opts.userId);
+  if (opts.deviceId) list = list.filter((m) => m.device === opts.deviceId);
+  if (opts.q) {
+    const q = String(opts.q).toLowerCase();
+    list = list.filter((m) =>
+      (m.recipient || '').toLowerCase().includes(q) ||
+      (m.sender || '').toLowerCase().includes(q) ||
+      (m.message || '').toLowerCase().includes(q));
+  }
+  list.sort((a, b) => b.createdAt - a.createdAt);
+  const page = opts.page || 1;
+  const limit = Math.min(opts.limit || 50, 200);
+  const start = (page - 1) * limit;
+  return { data: list.slice(start, start + limit).map(enrichMessage), total: list.length, page, limit };
+}
+/** Paginated list of ALL batches (admin). */
+function getAllBatches(opts = {}) {
+  const list = Object.values(state.batches).sort((a, b) => b.createdAt - a.createdAt);
+  const page = opts.page || 1;
+  const limit = Math.min(opts.limit || 50, 200);
+  const start = (page - 1) * limit;
+  return {
+    data: list.slice(start, start + limit).map((b) => ({
+      ...b,
+      userEmail: (state.users[b.user] || {}).email || null,
+      deviceName: (state.devices[b.device] || {}).name || (state.devices[b.device] || {}).model || null,
+    })),
+    total: list.length, page, limit,
+  };
+}
+/** Delete a single message record (admin). */
+function deleteMessage(id) {
+  const existed = !!state.messages[id];
+  delete state.messages[id];
+  if (existed) save();
+  return existed;
+}
+/** Bulk-create users from an import list; skips duplicates, collects per-row errors. */
+function importUsers(list) {
+  const results = { created: 0, skipped: 0, errors: [] };
+  (Array.isArray(list) ? list : []).forEach((entry, i) => {
+    try {
+      const email = String((entry && entry.email) || '').trim().toLowerCase();
+      const password = String((entry && entry.password) || '');
+      if (!email || !password) { results.errors.push(`Row ${i + 1}: email and password are required`); return; }
+      if (findUserByEmail(email)) { results.skipped++; return; }
+      createUser({ email, password, role: entry.role });
+      results.created++;
+    } catch (e) {
+      results.errors.push(`Row ${i + 1}: ${e.message}`);
+    }
+  });
+  return results;
+}
+/** Aggregated analytics for the admin dashboard charts. */
+function getAnalytics() {
+  const msgs = Object.values(state.messages);
+  const byStatus = { pending: 0, dispatched: 0, sent: 0, delivered: 0, failed: 0, received: 0 };
+  for (const m of msgs) {
+    if (m.type === 'received') byStatus.received++;
+    else if (byStatus[m.status] != null) byStatus[m.status]++;
+  }
+  const perDay = [];
+  const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+  for (let i = 13; i >= 0; i--) {
+    const start = dayStart.getTime() - i * 86400000;
+    const end = start + 86400000;
+    const inRange = msgs.filter((m) => m.createdAt >= start && m.createdAt < end);
+    perDay.push({
+      date: new Date(start).toISOString().slice(0, 10),
+      sent: inRange.filter((m) => m.type === 'sent').length,
+      received: inRange.filter((m) => m.type === 'received').length,
+      delivered: inRange.filter((m) => m.status === 'delivered').length,
+      failed: inRange.filter((m) => m.status === 'failed').length,
+    });
+  }
+  const topUsers = getAllUsers()
+    .map((u) => ({ email: u.email, ...getStats(u.id) }))
+    .filter((u) => u.sent > 0 || u.received > 0)
+    .sort((a, b) => (b.sent + b.received) - (a.sent + a.received))
+    .slice(0, 10);
+  return { byStatus, perDay, topUsers };
 }
 
 // ---------------- stats ----------------
@@ -319,4 +473,6 @@ module.exports = {
   createBatch, createMessage, getMessage, getMessagesByDevice, getPendingMessages, claimMessages,
   updateMessageStatus, receiveSms, getBatch, getBatchWithMessages, getStats,
   getOnlineDevicesByUser, pickDeviceForUser, getMessagesByUser,
+  ensureAdminBootstrap, listApiKeys, createApiKey, revokeApiKey, getAllUsers, updateUser, deleteUser,
+  getAllDevices, getAllMessages, getAllBatches, deleteMessage, importUsers, getAnalytics,
 };

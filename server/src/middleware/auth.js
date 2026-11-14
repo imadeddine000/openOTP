@@ -37,6 +37,7 @@ function authUser(req, res, next) {
   if (!data) return res.status(401).json({ error: 'Unauthorized' });
   const user = store.findUserById(data.uid);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (user.enabled === false) return res.status(403).json({ error: 'Account disabled' });
   req.user = user;
   next();
 }
@@ -63,4 +64,18 @@ function authClient(req, res, next) {
   next();
 }
 
-module.exports = { signToken, verifyToken, authUser, authGateway, authClient };
+/** Admin auth: Bearer token + must have role 'admin' and be enabled. */
+function authAdmin(req, res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const data = verifyToken(token);
+  if (!data) return res.status(401).json({ error: 'Unauthorized' });
+  const user = store.findUserById(data.uid);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  if (user.enabled === false) return res.status(403).json({ error: 'Account disabled' });
+  if ((user.role || 'client') !== 'admin') return res.status(403).json({ error: 'Admin access required' });
+  req.user = user;
+  next();
+}
+
+module.exports = { signToken, verifyToken, authUser, authGateway, authClient, authAdmin };

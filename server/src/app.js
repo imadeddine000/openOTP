@@ -4,6 +4,7 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const gatewayRoutes = require('./routes/gateway');
 const clientRoutes = require('./routes/client');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -16,9 +17,12 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/v1', clientRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/gateway', gatewayRoutes);
 
-// Serve the web UI dashboard
+// Serve the React frontend (built with Vite → frontend/dist)
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+// Serve legacy static assets (client API docs, etc.)
 app.use(express.static(path.join(__dirname, '../../web-ui')));
 
 module.exports = app;

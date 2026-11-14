@@ -25,6 +25,7 @@ router.post('/login', (req, res) => {
   if (!user || !store.verifyPassword(req.body.password || '', user.salt, user.hash)) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
+  if (user.enabled === false) return res.status(403).json({ error: 'Account disabled' });
   const token = signToken(user.id);
   res.json({ data: { user: store.publicUser(user), token } });
 });
@@ -36,6 +37,20 @@ router.get('/me', authUser, (req, res) => {
 router.post('/api-key', authUser, (req, res) => {
   const user = store.rotateApiKey(req.user.id);
   res.json({ data: store.publicUser(user) });
+});
+
+/* ---- client API key management (multiple keys per user) ---- */
+router.get('/api-keys', authUser, (req, res) => {
+  res.json({ data: store.listApiKeys(req.user.id) });
+});
+router.post('/api-keys', authUser, (req, res) => {
+  const entry = store.createApiKey(req.user.id, req.body.label);
+  res.status(201).json({ data: entry });
+});
+router.delete('/api-keys/:id', authUser, (req, res) => {
+  const ok = store.revokeApiKey(req.user.id, req.params.id);
+  if (!ok) return res.status(404).json({ error: 'API key not found' });
+  res.json({ data: { success: true } });
 });
 
 module.exports = router;

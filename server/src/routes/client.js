@@ -1,18 +1,18 @@
 /**
- * Client Integration API for openOTP â€” a clean REST interface so third-party
+ * Client Integration API for openOTP — a clean REST interface so third-party
  * apps can send OTP/SMS through the gateway WITHOUT knowing about devices.
  * The server auto-routes each request to an online Android gateway device.
  *
  * Auth: x-api-key header (the user's sk_... key from the dashboard).
  * Mount point: /api/v1
  *
- *   GET    /api/v1/health            â€” public health check
- *   GET    /api/v1/account           â€” account info + usage stats
- *   GET    /api/v1/devices           â€” list gateway devices (online status)
- *   POST   /api/v1/messages          â€” send one message  { to, message, deviceId?, simSubscriptionId?, simSlotIndex? }
- *   POST   /api/v1/messages/batch    â€” send many        { messages: [{ to, message, deviceId? }] } | { recipients: [...], message }
- *   GET    /api/v1/messages/:id      â€” get one message status
- *   GET    /api/v1/messages          â€” list messages     ?page=&limit=&status=&deviceId=
+ *   GET    /api/v1/health            — public health check
+ *   GET    /api/v1/account           — account info + usage stats
+ *   GET    /api/v1/devices           — list gateway devices (online status)
+ *   POST   /api/v1/messages          — send one message  { to, message, deviceId?, simSubscriptionId?, simSlotIndex? }
+ *   POST   /api/v1/messages/batch    — send many        { messages: [{ to, message, deviceId? }] } | { recipients: [...], message }
+ *   GET    /api/v1/messages/:id      — get one message status
+ *   GET    /api/v1/messages          — list messages     ?page=&limit=&status=&deviceId=&type=sent|received
  */
 const express = require('express');
 const router = express.Router();
@@ -46,9 +46,11 @@ function resolveSim(d, body) {
 /** Shape a message for the client response (friendly field names, hide internals). */
 function publicMessage(m) {
   return {
-    id: m.id, to: m.recipient, message: m.message, status: m.status,
+    id: m.id, type: m.type || 'sent', to: m.recipient, sender: m.sender || null,
+    message: m.message, status: m.status,
     deviceId: m.device, simSubscriptionId: m.simSubscriptionId, simSlotIndex: m.simSlotIndex,
     createdAt: m.createdAt, sentAt: m.sentAt, deliveredAt: m.deliveredAt, failedAt: m.failedAt,
+    receivedAt: m.receivedAt || null,
     errorCode: m.errorCode, errorMessage: m.errorMessage,
   };
 }
@@ -148,6 +150,7 @@ router.get('/messages', authClient, (req, res) => {
     limit: parseInt(req.query.limit) || 50,
     status: req.query.status || null,
     deviceId: req.query.deviceId || null,
+    type: req.query.type || 'sent',
   });
   res.json({ data: result.data.map(publicMessage), total: result.total, page: result.page, limit: result.limit });
 });

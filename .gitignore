@@ -10,6 +10,8 @@ yarn-error.log*
 # ---- Android ----
 # Build outputs
 **/build/
+# Frontend build output (Vite)
+dist/
 # Gradle wrapper cache
 .gradle/
 # Machine-specific SDK location
